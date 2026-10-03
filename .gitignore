@@ -1,0 +1,9 @@
+node_modules
+dist
+# Your live edits - local only. seed.json is the committed import from the spreadsheet.
+data/trips.json
+data/settings.json
+# Work travel clearance lists and the source spreadsheet - local only.
+data/countries.json
+scripts/holiday_planner.xlsx
+*.tmp

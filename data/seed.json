@@ -1,0 +1,496 @@
+{
+  "settings": {
+    "allowanceShifts": 35,
+    "rotaAnchor": "2026-12-31",
+    "monthsUntilLastTrip": 13
+  },
+  "trips": [
+    {
+      "id": "budapest",
+      "name": "Budapest",
+      "destination": "Budapest, Hungary",
+      "stops": [
+        {
+          "name": "Budapest",
+          "country": "Hungary",
+          "lat": 47.498,
+          "lng": 19.04,
+          "nights": null
+        }
+      ],
+      "start": "2027-04-12",
+      "end": "2027-04-16",
+      "whoWith": "Suz",
+      "inPlan": "Yes",
+      "cost": 1400,
+      "status": "Planning",
+      "bookBy": "2026-11-30",
+      "clearance": "",
+      "notifiedOn": null,
+      "notes": "Surprise. Inside Renfrewshire spring break. Needs her passport details.",
+      "leave": {
+        "status": "Not requested",
+        "requestedOn": null,
+        "notes": "Confirm spring break dates before requesting."
+      }
+    },
+    {
+      "id": "italy",
+      "name": "Italy",
+      "destination": "Rome - Venice - Verona - Como - Milan",
+      "stops": [
+        {
+          "name": "Rome",
+          "country": "Italy",
+          "lat": 41.903,
+          "lng": 12.496,
+          "nights": 3
+        },
+        {
+          "name": "Venice",
+          "country": "Italy",
+          "lat": 45.441,
+          "lng": 12.316,
+          "nights": 2
+        },
+        {
+          "name": "Verona",
+          "country": "Italy",
+          "lat": 45.438,
+          "lng": 10.992,
+          "nights": 2
+        },
+        {
+          "name": "Como",
+          "country": "Italy",
+          "lat": 45.808,
+          "lng": 9.085,
+          "nights": 3
+        },
+        {
+          "name": "Milan",
+          "country": "Italy",
+          "lat": 45.464,
+          "lng": 9.19,
+          "nights": 2
+        }
+      ],
+      "start": "2027-05-12",
+      "end": "2027-05-24",
+      "whoWith": "Solo",
+      "inPlan": "Yes",
+      "cost": 2100,
+      "status": "Planning",
+      "bookBy": "2027-01-31",
+      "clearance": "",
+      "notifiedOn": null,
+      "notes": "12 nights: Rome 3, Venice 2, Verona 2, Como 3, Milan 2. Milan nights Sat 22 + Sun 23 to cover Inter v Lazio at San Siro.",
+      "leave": {
+        "status": "Not requested",
+        "requestedOn": null,
+        "notes": "Window chosen to bracket one on-block and land the San Siro fixture."
+      }
+    },
+    {
+      "id": "prague",
+      "name": "Prague",
+      "destination": "Prague, Czechia",
+      "stops": [
+        {
+          "name": "Prague",
+          "country": "Czechia",
+          "lat": 50.076,
+          "lng": 14.438,
+          "nights": null
+        }
+      ],
+      "start": "2027-07-22",
+      "end": "2027-07-26",
+      "whoWith": "Friends (2-5)",
+      "inPlan": "Yes",
+      "cost": 600,
+      "status": "Idea",
+      "bookBy": "2027-03-31",
+      "clearance": "",
+      "notifiedOn": null,
+      "notes": "Small group, 4 nights. The drinking trip.",
+      "leave": {
+        "status": "Not requested",
+        "requestedOn": null,
+        "notes": "Almost free on the rota - see shift count."
+      }
+    },
+    {
+      "id": "group-holiday",
+      "name": "Group Holiday",
+      "destination": "TBC - large group, destination not chosen",
+      "stops": [],
+      "start": "2027-08-13",
+      "end": "2027-08-20",
+      "whoWith": "Friends (large)",
+      "inPlan": "Yes",
+      "cost": 800,
+      "status": "Idea",
+      "bookBy": "2027-03-31",
+      "clearance": "",
+      "notifiedOn": null,
+      "notes": "PLACEHOLDER. Nothing bookable until the group agrees a destination.",
+      "leave": {
+        "status": "Not requested",
+        "requestedOn": null,
+        "notes": "Dates will move to whenever the group aligns."
+      }
+    },
+    {
+      "id": "croatia",
+      "name": "Croatia+",
+      "destination": "Split - Dubrovnik - Kotor - Dubrovnik",
+      "stops": [
+        {
+          "name": "Split",
+          "country": "Croatia",
+          "lat": 43.508,
+          "lng": 16.44,
+          "nights": null
+        },
+        {
+          "name": "Dubrovnik",
+          "country": "Croatia",
+          "lat": 42.65,
+          "lng": 18.094,
+          "nights": null
+        },
+        {
+          "name": "Kotor",
+          "country": "Montenegro",
+          "lat": 42.425,
+          "lng": 18.771,
+          "nights": null
+        },
+        {
+          "name": "Dubrovnik",
+          "country": "Croatia",
+          "lat": 42.65,
+          "lng": 18.094,
+          "nights": null
+        }
+      ],
+      "start": "2027-09-04",
+      "end": "2027-09-12",
+      "whoWith": "Solo",
+      "inPlan": "Yes",
+      "cost": 1150,
+      "status": "Idea",
+      "bookBy": "2027-03-31",
+      "clearance": "",
+      "notifiedOn": null,
+      "notes": "8 nights. Sept = warm sea, crowds gone. Two land borders each way.",
+      "leave": {
+        "status": "Not requested",
+        "requestedOn": null,
+        "notes": "Overlaps the grad scheme end date - flag to Joe."
+      }
+    },
+    {
+      "id": "norway",
+      "name": "Norway",
+      "destination": "Oslo + Lofoten",
+      "stops": [
+        {
+          "name": "Oslo",
+          "country": "Norway",
+          "lat": 59.914,
+          "lng": 10.752,
+          "nights": null
+        },
+        {
+          "name": "Lofoten",
+          "country": "Norway",
+          "lat": 68.234,
+          "lng": 14.568,
+          "nights": null
+        }
+      ],
+      "start": null,
+      "end": null,
+      "whoWith": "Solo",
+      "inPlan": "Parked",
+      "cost": 1550,
+      "status": "Idea",
+      "bookBy": null,
+      "clearance": "",
+      "notifiedOn": null,
+      "notes": "MOVED TO 2028. September stays the target month.",
+      "leave": {
+        "status": "Not requested",
+        "requestedOn": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "usa-east",
+      "name": "USA East",
+      "destination": "New York - Hudson Valley - New England - Boston",
+      "stops": [
+        {
+          "name": "New York",
+          "country": "United States",
+          "lat": 40.713,
+          "lng": -74.006,
+          "nights": null
+        },
+        {
+          "name": "Hudson Valley",
+          "country": "United States",
+          "lat": 41.7,
+          "lng": -73.921,
+          "nights": null
+        },
+        {
+          "name": "New England",
+          "country": "United States",
+          "lat": 43.624,
+          "lng": -72.518,
+          "nights": null
+        },
+        {
+          "name": "Boston",
+          "country": "United States",
+          "lat": 42.36,
+          "lng": -71.058,
+          "nights": null
+        }
+      ],
+      "start": null,
+      "end": null,
+      "whoWith": "Solo",
+      "inPlan": "Parked",
+      "cost": 4300,
+      "status": "Idea",
+      "bookBy": null,
+      "clearance": "",
+      "notifiedOn": null,
+      "notes": "TARGET 2029, late Sept/early Oct for New England fall colour. ~14 nights. NYC is the priority stop. Small-town leg covers the Stranger Things brief.",
+      "leave": {
+        "status": "Not requested",
+        "requestedOn": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "usa-west",
+      "name": "USA West",
+      "destination": "Seattle - Portland - San Francisco - Yosemite - Las Vegas",
+      "stops": [
+        {
+          "name": "Seattle",
+          "country": "United States",
+          "lat": 47.606,
+          "lng": -122.332,
+          "nights": null
+        },
+        {
+          "name": "Portland",
+          "country": "United States",
+          "lat": 45.515,
+          "lng": -122.679,
+          "nights": null
+        },
+        {
+          "name": "San Francisco",
+          "country": "United States",
+          "lat": 37.775,
+          "lng": -122.419,
+          "nights": null
+        },
+        {
+          "name": "Yosemite",
+          "country": "United States",
+          "lat": 37.745,
+          "lng": -119.593,
+          "nights": null
+        },
+        {
+          "name": "Las Vegas",
+          "country": "United States",
+          "lat": 36.17,
+          "lng": -115.14,
+          "nights": null
+        }
+      ],
+      "start": null,
+      "end": null,
+      "whoWith": "Solo",
+      "inPlan": "Parked",
+      "cost": 5200,
+      "status": "Idea",
+      "bookBy": null,
+      "clearance": "",
+      "notifiedOn": null,
+      "notes": "TARGET 2031, September. ~17 nights. Open-jaw Seattle in, Vegas out. Hire car essential for Yosemite and the Oregon leg.",
+      "leave": {
+        "status": "Not requested",
+        "requestedOn": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "ireland",
+      "name": "Ireland",
+      "destination": "Dublin + castles",
+      "stops": [
+        {
+          "name": "Dublin",
+          "country": "Ireland",
+          "lat": 53.35,
+          "lng": -6.26,
+          "nights": null
+        }
+      ],
+      "start": null,
+      "end": null,
+      "whoWith": "Suz",
+      "inPlan": "Parked",
+      "cost": 900,
+      "status": "Idea",
+      "bookBy": null,
+      "clearance": "",
+      "notifiedOn": null,
+      "notes": "TARGET Oct week 2027 or Easter 2028 - must fall in a school holiday. 4-5 nights. Dublin base, castles by day trip or hire car.",
+      "leave": {
+        "status": "Not requested",
+        "requestedOn": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "bavaria-alps",
+      "name": "Bavaria & Alps",
+      "destination": "Munich - Kaltenberg - Salzburg - Innsbruck",
+      "stops": [
+        {
+          "name": "Munich",
+          "country": "Germany",
+          "lat": 48.137,
+          "lng": 11.576,
+          "nights": null
+        },
+        {
+          "name": "Kaltenberg",
+          "country": "Germany",
+          "lat": 48.176,
+          "lng": 11.009,
+          "nights": null
+        },
+        {
+          "name": "Salzburg",
+          "country": "Austria",
+          "lat": 47.809,
+          "lng": 13.055,
+          "nights": null
+        },
+        {
+          "name": "Innsbruck",
+          "country": "Austria",
+          "lat": 47.269,
+          "lng": 11.404,
+          "nights": null
+        }
+      ],
+      "start": null,
+      "end": null,
+      "whoWith": "Solo",
+      "inPlan": "Parked",
+      "cost": 1500,
+      "status": "Idea",
+      "bookBy": null,
+      "clearance": "",
+      "notifiedOn": null,
+      "notes": "TARGET mid-to-late July 2028, anchored on the Kaltenberg Ritterturnier (jousting, 50km west of Munich, 3 weekends each July). ~9 nights.",
+      "leave": {
+        "status": "Not requested",
+        "requestedOn": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "japan",
+      "name": "Japan",
+      "destination": "Tokyo - Kyoto - Mt Fuji",
+      "stops": [
+        {
+          "name": "Tokyo",
+          "country": "Japan",
+          "lat": 35.676,
+          "lng": 139.65,
+          "nights": null
+        },
+        {
+          "name": "Kyoto",
+          "country": "Japan",
+          "lat": 35.012,
+          "lng": 135.768,
+          "nights": null
+        },
+        {
+          "name": "Mt Fuji",
+          "country": "Japan",
+          "lat": 35.361,
+          "lng": 138.727,
+          "nights": null
+        }
+      ],
+      "start": null,
+      "end": null,
+      "whoWith": "Friends (2-3)",
+      "inPlan": "Parked",
+      "cost": 3800,
+      "status": "Idea",
+      "bookBy": null,
+      "clearance": "",
+      "notifiedOn": null,
+      "notes": "FUTURE, with a friend or two. Late Oct/Nov best - autumn colour and the clearest Fuji views. ~14 nights. Group of 3 cuts the cost per head on rooms.",
+      "leave": {
+        "status": "Not requested",
+        "requestedOn": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "australia",
+      "name": "Australia",
+      "destination": "Sydney + Gold Coast",
+      "stops": [
+        {
+          "name": "Sydney",
+          "country": "Australia",
+          "lat": -33.869,
+          "lng": 151.209,
+          "nights": null
+        },
+        {
+          "name": "Gold Coast",
+          "country": "Australia",
+          "lat": -28.017,
+          "lng": 153.4,
+          "nights": null
+        }
+      ],
+      "start": null,
+      "end": null,
+      "whoWith": "Solo",
+      "inPlan": "Parked",
+      "cost": 4800,
+      "status": "Idea",
+      "bookBy": null,
+      "clearance": "",
+      "notifiedOn": null,
+      "notes": "FUTURE. Sept-Nov or March-May. ~16 nights minimum - 24h each way makes anything shorter wasteful.",
+      "leave": {
+        "status": "Not requested",
+        "requestedOn": null,
+        "notes": ""
+      }
+    }
+  ]
+}
