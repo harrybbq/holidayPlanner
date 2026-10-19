@@ -30,6 +30,10 @@ export interface Leg {
   by: Travel;
   via?: Via[]; // driving and trains, in travel order
   avoid?: Avoid; // driving only
+  // Trains only: the stations to get on and off at, for a stop whose pin isn't by a line
+  // that joins the rest of the network (city centres in Japan often sit by a separate line).
+  board?: Via;
+  alight?: Via;
   route?: Route;
 }
 

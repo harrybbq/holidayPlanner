@@ -551,7 +551,17 @@
           "lng": 139.65,
           "nights": null,
           "leg": {
-            "by": "train"
+            "by": "train",
+            "board": {
+              "name": "Tokyo Station",
+              "lat": 35.6812,
+              "lng": 139.7671
+            },
+            "alight": {
+              "name": "Kyoto Station",
+              "lat": 34.9858,
+              "lng": 135.7588
+            }
           }
         },
         {
@@ -561,7 +571,17 @@
           "lng": 135.768,
           "nights": null,
           "leg": {
-            "by": "train"
+            "by": "train",
+            "board": {
+              "name": "Kyoto Station",
+              "lat": 34.9858,
+              "lng": 135.7588
+            },
+            "alight": {
+              "name": "Kawaguchiko",
+              "lat": 35.498,
+              "lng": 138.769
+            }
           }
         },
         {

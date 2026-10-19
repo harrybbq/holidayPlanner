@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Polyline, Marker, CircleMarker, Tooltip, useMa
 import L from 'leaflet';
 import type { Stop, StopKind, Trip } from '../types';
 import { arc, halfway, type LatLng } from '../lib/geo';
-import { decode, freshRoute, legOf } from '../lib/route';
+import { decode, freshRoute, legOf, legPoints } from '../lib/route';
 import { baseNumbers, fmtDate, stopKind } from '../lib/calc';
 
 interface Props {
@@ -66,20 +66,27 @@ function roadLine(line: string): LatLng[] {
 /**
  * The line for the leg leaving stop a: flights arc between the stops, driving and
  * train legs follow their road or rail route. One with no route yet (or no road or
- * railway at all) is a straight dotted line through its via points.
+ * railway at all) is a straight dotted line through its stations and via points.
  */
 function legLine(a: Stop, b: Stop): { pts: LatLng[]; rough: boolean; train: boolean } {
   const leg = legOf(a);
   const train = leg.by === 'train';
   if (leg.by === 'flight') return { pts: arc([a.lat, a.lng], [b.lat, b.lng]), rough: false, train };
   const line = freshRoute(a, b, leg)?.line;
-  if (line) return { pts: roadLine(line), rough: false, train };
-  return { pts: [[a.lat, a.lng], ...(leg.via ?? []).map((v): LatLng => [v.lat, v.lng]), [b.lat, b.lng]], rough: true, train };
+  // A train's line runs between its stations, so it's joined on to the stop pins.
+  const ends = (mid: LatLng[]): LatLng[] => (train ? [[a.lat, a.lng], ...mid, [b.lat, b.lng]] : mid);
+  if (line) return { pts: ends(roadLine(line)), rough: false, train };
+  return { pts: ends(legPoints(a, b, leg)), rough: true, train };
 }
 
-/** Via points of the trip's driving and train legs. */
+/** Via points and chosen stations of the trip's driving and train legs, with what they are. */
 function vias(t: Trip) {
-  return t.stops.slice(0, -1).flatMap((s) => (legOf(s).by === 'flight' ? [] : (s.leg?.via ?? [])));
+  return t.stops.slice(0, -1).flatMap((s) => {
+    const leg = legOf(s);
+    if (leg.by === 'flight') return [];
+    const stations = leg.by === 'train' ? [leg.board && { ...leg.board, role: 'Board at' }, leg.alight && { ...leg.alight, role: 'Get off at' }] : [];
+    return [...(leg.via ?? []).map((v) => ({ ...v, role: 'via' })), ...stations].filter((v) => !!v);
+  });
 }
 
 function arrowIcon(deg: number, colour: string) {
@@ -172,7 +179,9 @@ export default function TripMap({ trips, colours, selectedId, onSelect }: Props)
                 radius={4}
                 pathOptions={{ color: colour, weight: 2, fillColor: '#fff', fillOpacity: 1 }}
               >
-                <Tooltip direction="top" offset={[0, -4]}>via {v.name}</Tooltip>
+                <Tooltip direction="top" offset={[0, -4]}>
+                  {v.role} {v.name}
+                </Tooltip>
               </CircleMarker>
             ))}
             {pins(t).map(({ stop: s, nums, nights, kind }, i) => (

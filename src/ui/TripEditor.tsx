@@ -276,7 +276,7 @@ function LegEdit({ from, to, leg, onChange }: { from: Stop; to: Stop; leg: Leg; 
     e.preventDefault();
     if (q.trim().length < 2) return;
     // Rank roads and places around this leg first, so "A82" or "US-101" finds the right stretch.
-    const pts = [from, to, ...via];
+    const pts = [from, to, ...via, ...(leg.board ? [leg.board] : []), ...(leg.alight ? [leg.alight] : [])];
     const lats = pts.map((p) => p.lat);
     const lngs = pts.map((p) => p.lng);
     const pad = 0.5;
@@ -295,17 +295,29 @@ function LegEdit({ from, to, leg, onChange }: { from: Stop; to: Stop; leg: Leg; 
     }
   }
 
-  function addVia(p: Place) {
-    onChange({ ...leg, via: insertVia(from, to, via, { name: p.name, lat: p.lat, lng: p.lng }) });
+  /** Uses a search result as a via point, or for trains as the station to board or get off at. */
+  function pick(p: Place, as: 'via' | 'board' | 'alight') {
+    const place = { name: p.name, lat: p.lat, lng: p.lng };
+    onChange(as === 'via' ? { ...leg, via: insertVia(from, to, via, place) } : { ...leg, [as]: place });
     setResults([]);
     setQ('');
   }
+
+  // What's been chosen for the leg, in travel order, each removable.
+  const chips = [
+    ...(train && leg.board ? [{ text: `Board at ${leg.board.name}`, remove: () => onChange({ ...leg, board: undefined }) }] : []),
+    ...via.map((v, i) => ({ text: `via ${v.name}`, remove: () => onChange({ ...leg, via: via.filter((_, j) => j !== i) }) })),
+    ...(train && leg.alight ? [{ text: `Get off at ${leg.alight.name}`, remove: () => onChange({ ...leg, alight: undefined }) }] : []),
+  ];
 
   const summary =
     leg.by === 'flight'
       ? `~${Math.round(km(from, to)).toLocaleString('en-GB')} km to ${to.name}`
       : [
-          via.length ? 'via ' + via.map((v) => v.name).join(', ') : train ? 'shortest rail route' : 'best route',
+          train && leg.board && 'from ' + leg.board.name,
+          via.length ? 'via ' + via.map((v) => v.name).join(', ') : !train && 'best route',
+          train && leg.alight && 'to ' + leg.alight.name,
+          train && !leg.board && !leg.alight && !via.length && 'shortest rail route',
           !train && leg.avoid && 'no ' + AVOID_LABEL[leg.avoid],
           route?.line
             ? `${route.km.toLocaleString('en-GB')} km${route.roads ? ' on ' + route.roads : ''}`
@@ -339,17 +351,12 @@ function LegEdit({ from, to, leg, onChange }: { from: Stop; to: Stop; leg: Leg; 
       </div>
       {leg.by !== 'flight' && open && (
         <div className="leg-roads">
-          {via.length > 0 && (
+          {chips.length > 0 && (
             <ul className="via-list">
-              {via.map((v, i) => (
-                <li key={i}>
-                  via {v.name}
-                  <button
-                    type="button"
-                    className="icon-btn"
-                    onClick={() => onChange({ ...leg, via: via.filter((_, j) => j !== i) })}
-                    aria-label={`Remove via ${v.name}`}
-                  >
+              {chips.map((c) => (
+                <li key={c.text}>
+                  {c.text}
+                  <button type="button" className="icon-btn" onClick={c.remove} aria-label={`Remove ${c.text}`}>
                     ×
                   </button>
                 </li>
@@ -360,20 +367,33 @@ function LegEdit({ from, to, leg, onChange }: { from: Stop; to: Stop; leg: Leg; 
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder={train ? 'Go via a town or station on the line you want' : 'Go via a road or place, e.g. US-101 or Port Townsend'}
+              placeholder={train ? 'Search for a station, or a town on the line you want' : 'Go via a road or place, e.g. US-101 or Port Townsend'}
             />
             <button className="btn" disabled={searching}>{searching ? 'Searching…' : 'Find'}</button>
           </form>
           {err && <p className="warn-text small">{err}</p>}
           {results.length > 0 && (
             <ul className="results">
-              {results.map((p, i) => (
-                <li key={i}>
-                  <button type="button" onClick={() => addVia(p)}>
-                    <strong>{p.name}</strong> <span className="muted small">{p.label}</span>
-                  </button>
-                </li>
-              ))}
+              {results.map((p, i) =>
+                train ? (
+                  <li key={i} className="station-result">
+                    <span className="grow">
+                      <strong>{p.name}</strong> <span className="muted small">{p.label}</span>
+                    </span>
+                    <span className="station-actions">
+                      <button type="button" className="btn sm" onClick={() => pick(p, 'board')}>Board here</button>
+                      <button type="button" className="btn sm" onClick={() => pick(p, 'via')}>Via</button>
+                      <button type="button" className="btn sm" onClick={() => pick(p, 'alight')}>Get off here</button>
+                    </span>
+                  </li>
+                ) : (
+                  <li key={i}>
+                    <button type="button" onClick={() => pick(p, 'via')}>
+                      <strong>{p.name}</strong> <span className="muted small">{p.label}</span>
+                    </button>
+                  </li>
+                ),
+              )}
             </ul>
           )}
           {!train && (
@@ -389,9 +409,9 @@ function LegEdit({ from, to, leg, onChange }: { from: Stop; to: Stop; leg: Leg; 
           )}
           <p className="muted small">
             {train
-              ? 'With nothing chosen it takes the shortest way along the tracks. Add towns it should go through to pick the line; '
-              : 'With nothing chosen it takes the fastest route. Add the towns or roads you want it to go through; '}
-            the route is worked out again when you save.
+              ? "With nothing chosen it takes the shortest way along the tracks from the stops' pins. If no railway is found, or it starts on the wrong line, search for the stations and use Board here and Get off here; add towns to go through to pick the line."
+              : 'With nothing chosen it takes the fastest route. Add the towns or roads you want it to go through.'}{' '}
+            The route is worked out again when you save.
           </p>
         </div>
       )}

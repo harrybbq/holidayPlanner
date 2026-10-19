@@ -22,7 +22,9 @@ function LegInfo({ a, b, routeErrors }: { a: Stop; b: Stop; routeErrors: Record<
   const train = leg.by === 'train';
   const r = freshRoute(a, b, leg);
   const chosen = [
+    train && leg.board ? 'from ' + leg.board.name : '',
     leg.via?.length ? 'via ' + leg.via.map((v) => v.name).join(', ') : '',
+    train && leg.alight ? 'to ' + leg.alight.name : '',
     !train && leg.avoid ? 'no ' + AVOID_LABEL[leg.avoid] : '',
   ].filter(Boolean);
   if (r?.line) {
@@ -34,14 +36,26 @@ function LegInfo({ a, b, routeErrors }: { a: Stop; b: Stop; routeErrors: Record<
       </div>
     );
   }
+  if (r && train) {
+    // Either a stop has no railway near it, or its nearest track is a line that doesn't join up.
+    return (
+      <div className="rm-leg">
+        <span className="warn-text">
+          No railway found to {b.name}
+          {chosen.length ? ` (${chosen.join(', ')})` : ''}.
+        </span>{' '}
+        Edit the trip and pick the stations to board and get off at in Choose route, or drive or fly this leg.
+      </div>
+    );
+  }
   if (r) {
     return (
       <div className="rm-leg">
         <span className="warn-text">
-          No {train ? 'railway' : 'road'} to {b.name}
+          No road to {b.name}
           {chosen.length ? ` (${chosen.join(', ')})` : ''}.
         </span>{' '}
-        Edit the trip to {train ? 'drive or fly' : 'fly'} this leg{chosen.length ? ` or change its ${train ? 'route' : 'roads'}` : ''}.
+        Edit the trip to fly this leg{chosen.length ? ' or change its roads' : ''}.
       </div>
     );
   }

@@ -248,6 +248,10 @@ legend .muted { font-weight: 400; }
 .via-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .via-list li { display: inline-flex; align-items: center; gap: 2px; background: var(--line-2); border-radius: 99px; padding: 1px 2px 1px 10px; font-size: 12.5px; }
 .via-list .icon-btn { width: 22px; height: 22px; font-size: 14px; }
+.station-result { display: flex; align-items: center; gap: 8px; padding: 6px 10px; }
+.station-result .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.station-actions { display: flex; gap: 4px; flex: none; }
+.station-actions .btn { white-space: nowrap; }
 .avoid { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
 .modal-body .avoid select { padding: 4px 8px; }
 

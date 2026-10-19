@@ -17,9 +17,12 @@ export function legOf(s: Stop): Leg {
   return s.leg ?? { by: 'road' };
 }
 
-/** The leg's ends with its via points in between. */
+/** The leg's ends with its via points in between. A train runs from and to its chosen stations. */
 export function legPoints(a: Stop, b: Stop, leg: Leg): LatLng[] {
-  return [[a.lat, a.lng], ...(leg.via ?? []).map((v): LatLng => [v.lat, v.lng]), [b.lat, b.lng]];
+  const train = leg.by === 'train';
+  const from = (train && leg.board) || a;
+  const to = (train && leg.alight) || b;
+  return [[from.lat, from.lng], ...(leg.via ?? []).map((v): LatLng => [v.lat, v.lng]), [to.lat, to.lng]];
 }
 
 export function legKey(a: Stop, b: Stop, leg: Leg): string {
@@ -193,10 +196,13 @@ export async function findRail(points: LatLng[], headers?: Record<string, string
   return parseBrouter(r.status, await r.text(), points);
 }
 
+// BRouter reaches out up to 60 km for a track; past this, the stop has no railway of its own.
+const NEAR_TRACK_KM = 25;
+
 /** Reads BRouter's reply: GeoJSON on success, a plain-text message (HTTP 400) when it can't route. */
 export function parseBrouter(status: number, body: string, points: LatLng[]): Found {
   if (status !== 200) {
-    // A stop with no railway near it, or tracks that don't join up.
+    // A stop with no railway near it, or the nearest track is a line that doesn't join up.
     if (/not mapped|no track found|island detected/i.test(body)) return NONE;
     const msg = body.trim().split('\n')[0];
     throw new Error(msg && !msg.startsWith('<') && msg.length < 200 ? msg : `Rail route finder unavailable (${status})`);
@@ -204,8 +210,11 @@ export function parseBrouter(status: number, body: string, points: LatLng[]): Fo
   const track = (JSON.parse(body) as BrouterResponse).features?.[0];
   if (!track) throw new Error('Rail route finder sent no route');
   const rails = track.geometry.coordinates.map(([lng, lat]): LatLng => [lat, lng]);
-  // The tracks start at the station, so join the line up to the stops themselves.
-  const line = [points[0], ...rails, points[points.length - 1]];
+  const gap = (p: LatLng, q: LatLng) => km({ lat: p[0], lng: p[1] }, { lat: q[0], lng: q[1] });
+  const [start, end] = [points[0], points[points.length - 1]];
+  if (gap(start, rails[0]) > NEAR_TRACK_KM || gap(end, rails[rails.length - 1]) > NEAR_TRACK_KM) return NONE;
+  // The tracks start beside the station, so join the line up to the points asked for.
+  const line = [start, ...rails, end];
   return { line: encode(simplify(line, 0.0003)), km: Math.round(Number(track.properties['track-length']) / 1000), mins: 0, roads: '' };
 }
 

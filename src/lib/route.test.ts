@@ -1,4 +1,4 @@
-import { decode, encode, freshRoute, insertVia, legKey, legKm, legOf, legsByPair, parseBrouter, parseOsrm, pendingJobs, relink, simplify, withRoute } from './route';
+import { decode, encode, freshRoute, insertVia, legKey, legKm, legOf, legPoints, legsByPair, parseBrouter, parseOsrm, pendingJobs, relink, simplify, withRoute } from './route';
 import { halfway, type LatLng } from './geo';
 import type { Stop, Trip } from '../types';
 
@@ -99,6 +99,15 @@ describe('train legs', () => {
     expect(job.avoid).toBeUndefined();
   });
 
+  it('run between their chosen stations, if any', () => {
+    const board = { name: 'Shinjuku', lat: 35.6896, lng: 139.7006 };
+    const alight = { name: 'Kyoto Station', lat: 34.9858, lng: 135.7588 };
+    expect(legPoints(tokyo, kyoto, { by: 'train', board, alight })).toEqual([[35.6896, 139.7006], [34.9858, 135.7588]]);
+    expect(legKey(tokyo, kyoto, { by: 'train', board })).not.toBe(legKey(tokyo, kyoto, { by: 'train' }));
+    // Stations only mean anything for trains.
+    expect(legPoints(tokyo, kyoto, { by: 'road', board, alight })).toEqual([[tokyo.lat, tokyo.lng], [kyoto.lat, kyoto.lng]]);
+  });
+
   it('count rail distance once the route is in', () => {
     const [job] = pendingJobs([trip('japan', [{ ...tokyo, leg: { by: 'train' } }, kyoto])]);
     const [t] = withRoute([trip('japan', [{ ...tokyo, leg: { by: 'train' } }, kyoto])], job, { line: 'x', km: 453, mins: 0, roads: '' });
@@ -126,6 +135,14 @@ describe('BRouter responses', () => {
     expect(line[0]).toEqual(ends[0]);
     expect(line).toContainEqual([35.2, 137]);
     expect(line[line.length - 1]).toEqual(ends[1]);
+  });
+
+  it('counts a track that starts far from the stop as no railway', () => {
+    // Split -> Dubrovnik: Dubrovnik has no railway, and the nearest track is ~50 km away.
+    const body = JSON.stringify({
+      features: [{ properties: { 'track-length': '1033454' }, geometry: { coordinates: [[16.442, 43.508], [17.686, 43.069]] } }],
+    });
+    expect(parseBrouter(200, body, [[43.508, 16.44], [42.65, 18.094]]).line).toBeNull();
   });
 
   it('treats no railway as a result, not an error', () => {
