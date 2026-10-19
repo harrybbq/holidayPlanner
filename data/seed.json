@@ -280,58 +280,107 @@
     {
       "id": "usa-west",
       "name": "USA West",
-      "destination": "Seattle - Portland - San Francisco - Yosemite - Las Vegas",
+      "destination": "Seattle - Forks - Astoria - Hood River - Portland - St. Helens - Oregon Coast (101) - Redwoods - Mendocino - San Francisco",
       "stops": [
         {
           "name": "Seattle",
           "country": "United States",
           "lat": 47.606,
           "lng": -122.332,
-          "nights": null
+          "nights": 6
+        },
+        {
+          "name": "Forks",
+          "country": "United States",
+          "lat": 47.95,
+          "lng": -124.385,
+          "nights": 7
+        },
+        {
+          "name": "Astoria",
+          "country": "United States",
+          "lat": 46.188,
+          "lng": -123.831,
+          "nights": 7
+        },
+        {
+          "name": "Mosier (Hood River)",
+          "country": "United States",
+          "lat": 45.684,
+          "lng": -121.396,
+          "nights": 7
         },
         {
           "name": "Portland",
           "country": "United States",
           "lat": 45.515,
           "lng": -122.679,
-          "nights": null
+          "nights": 3
+        },
+        {
+          "name": "St. Helens (Columbia City base)",
+          "country": "United States",
+          "lat": 45.89,
+          "lng": -122.807,
+          "nights": 7
+        },
+        {
+          "name": "Newport",
+          "country": "United States",
+          "lat": 44.637,
+          "lng": -124.053,
+          "nights": 1
+        },
+        {
+          "name": "Yachats",
+          "country": "United States",
+          "lat": 44.311,
+          "lng": -124.105,
+          "nights": 1
+        },
+        {
+          "name": "Bandon",
+          "country": "United States",
+          "lat": 43.119,
+          "lng": -124.408,
+          "nights": 1
+        },
+        {
+          "name": "Trinidad",
+          "country": "United States",
+          "lat": 41.059,
+          "lng": -124.143,
+          "nights": 3
+        },
+        {
+          "name": "Mendocino",
+          "country": "United States",
+          "lat": 39.308,
+          "lng": -123.799,
+          "nights": 2
         },
         {
           "name": "San Francisco",
           "country": "United States",
           "lat": 37.775,
           "lng": -122.419,
-          "nights": null
-        },
-        {
-          "name": "Yosemite",
-          "country": "United States",
-          "lat": 37.745,
-          "lng": -119.593,
-          "nights": null
-        },
-        {
-          "name": "Las Vegas",
-          "country": "United States",
-          "lat": 36.17,
-          "lng": -115.14,
-          "nights": null
+          "nights": 4
         }
       ],
-      "start": null,
-      "end": null,
+      "start": "2028-09-25",
+      "end": "2028-11-13",
       "whoWith": "Solo",
       "inPlan": "Parked",
-      "cost": 5200,
-      "status": "Idea",
-      "bookBy": null,
+      "cost": 13500,
+      "status": "Planning",
+      "bookBy": "2027-10-25",
       "clearance": "",
       "notifiedOn": null,
-      "notes": "TARGET 2031, September. ~17 nights. Open-jaw Seattle in, Vegas out. Hire car essential for Yosemite and the Oregon leg.",
+      "notes": "PNW road trip, autumn 2028. 49 nights, solo. Fly London → Seattle in, San Francisco → London home. Weekly Airbnb bases with day trips; motels on the Oregon coast nights.\n\nROUTE & DAY TRIPS\n• Seattle (25 Sep–1 Oct): car-free, light rail from the airport. Columbia Center Sky View, Pike Place + Storyville Coffee, Golden Gardens, Kerry Park, Capitol Hill, Fremont, Ballard, Discovery Park. Day trips: Poulsbo (Bremerton ferry), North Bend/Snoqualmie (Twede's, Salish Lodge), Roslyn.\n• Forks (1–8 Oct): pick up car 1 Oct, Edmonds–Kingston ferry, lunch in Port Townsend. Day trips: Lake Crescent + Mount Storm King, La Push, Hoh Rain Forest, Ruby Beach, Kalaloch, Lake Quinault, Port Angeles/Hurricane Ridge.\n• Astoria (8–15 Oct): Cannon Beach, Seaside, Cape Disappointment, Ecola, Fort Stevens.\n• Mosier / Hood River (15–22 Oct): Multnomah Falls & the Gorge, Mt Hood, Fruit Loop pumpkin patches.\n• Portland (22–25 Oct): city, Powell's, maybe a McMenamins night. Silver Falls.\n• St. Helens, base in Columbia City (25 Oct–1 Nov): Spirit of Halloweentown, festival weekend 28–29 Oct, Twilight walking tour, HALLOWEEN NIGHT Tue 31 Oct. Rideshare is scarce – plan the night home.\n• Oregon 101 (1–4 Nov): Hwy 26 to Cannon Beach, then 101 south: Manzanita, Tillamook, Three Capes, Pacific City, Lincoln City, Depoe Bay → Newport → Yachats, Cape Perpetua, Heceta Head → Florence, Hobbit Trail, Coos Bay → Bandon.\n• Trinidad (4–7 Nov): Boardman Scenic Corridor on the way in. Prairie Creek Redwoods, Fern Canyon, Ferndale, Avenue of the Giants.\n• Mendocino (7–9 Nov): 101 turns inland at Leggett – take Highway 1 down the coast.\n• San Francisco (9–13 Nov): drop the car on arrival. Golden Gate, Lands End, Alcatraz, Muir Woods, Haight & Mission.\n\nCOSTS (est. £11.3–16.9k, target ~£13.5k)\n• Accommodation £5.5–7.5k (Airbnb search, same dates 2027).\n• Car: one-way SEA → SFO, 1 Oct–9 Nov. Checked Oct 2026 for a 39-day Nov–Dec rental: RAV4 £1,117 incl. £279 one-way fee; insurance extra. Budget £1,250–1,650 with insurance + 2028 uplift. Age 25 = no young-driver fee.\n• Flights £600–1,000 · fuel £400–600 · food £1.3–2k · parks pass $250 · activities £560–910.\n\nBOOK FIRST: St. Helens-area stay as soon as autumn 2028 calendars open (~Oct–Nov 2027). Then Forks, other bases, flights ~5 months out.\n\nSAFETY: never leave anything visible in the car (SF). Never turn your back on the sea; stay off driftwood logs.",
       "leave": {
         "status": "Not requested",
         "requestedOn": null,
-        "notes": ""
+        "notes": "26 shifts on 4-on-4-off. Annual + unpaid leave, or a new-job start date after the trip. Submit a work travel request (USA not pre-approved)."
       }
     },
     {
