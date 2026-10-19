@@ -1,4 +1,4 @@
-# Temporary: see what brouter.de's rail profile says for the Japan legs. Removed after.
+# Temporary: see what brouter.de's rail profile and Nominatim's station search give. Removed after.
 name: BRouter probe
 on:
   push:
@@ -8,16 +8,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          probe() {
-            echo "=== $1"
-            curl -s -m 90 -o body.txt -w "HTTP %{http_code} in %{time_total}s\n" "https://brouter.de/brouter?lonlats=$2&profile=rail&alternativeidx=0&format=geojson$3"
-            head -c 600 body.txt | sed -e 's/"coordinates".*//' ; echo
+          UA="HolidayPlanner/0.1 (route probe)"
+          rail() {
+            printf "%-34s " "$1"
+            code=$(curl -s -m 90 -A "$UA" -o body.txt -w "%{http_code}" "https://brouter.de/brouter?lonlats=$2&profile=rail&alternativeidx=0&format=geojson")
+            if [ "$code" = 200 ]; then grep -o '"track-length": "[0-9]*"' body.txt; else echo "HTTP $code $(head -c 120 body.txt)"; fi
+            sleep 1.2
           }
-          probe "Tokyo -> Kyoto (app's stops)" "139.65,35.676|135.768,35.012"
-          probe "Tokyo -> Kyoto, catch 3 km" "139.65,35.676|135.768,35.012" "&profile:waypointCatchingRange=3000"
-          probe "Tokyo -> Kyoto, dynamic range" "139.65,35.676|135.768,35.012" "&profile:use_dynamic_range=1"
-          probe "Tokyo Stn -> Kyoto Stn" "139.7671,35.6812|135.7588,34.9858"
-          probe "Kyoto -> Mt Fuji summit, catch 3 km" "135.768,35.012|138.727,35.361" "&profile:waypointCatchingRange=3000"
-          probe "Kyoto -> Mt Fuji summit, catch 25 km" "135.768,35.012|138.727,35.361" "&profile:waypointCatchingRange=25000"
-          probe "Rome -> Venice (app's stops)" "12.496,41.903|12.316,45.441"
-          probe "Rome -> Venice, catch 3 km" "12.496,41.903|12.316,45.441" "&profile:waypointCatchingRange=3000"
+          stations() { # lat lng label
+            echo "--- stations near $3"
+            b="$(echo "$2 - 0.15" | bc),$(echo "$1 - 0.15" | bc),$(echo "$2 + 0.15" | bc),$(echo "$1 + 0.15" | bc)"
+            curl -s -m 30 -A "$UA" "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&accept-language=en&bounded=1&viewbox=$b&q=railway+station" \
+              | jq -r '.[] | "  \(.name) | \(.category)=\(.type) | imp \(.importance) | \(.lon),\(.lat)"'
+            sleep 1.2
+          }
+          echo "=== city pins as they are"
+          rail "Milan -> Como" "9.19,45.464|9.085,45.808"
+          rail "Verona -> Como" "10.992,45.438|9.085,45.808"
+          rail "Prague -> Budapest" "14.438,50.076|19.04,47.498"
+          rail "Munich -> Salzburg" "11.576,48.137|13.055,47.809"
+          rail "Salzburg -> Innsbruck" "13.055,47.809|11.404,47.269"
+          rail "Oslo -> Lofoten" "10.752,59.914|14.568,68.234"
+          rail "Split -> Dubrovnik" "16.44,43.508|18.094,42.65"
+          stations 35.676 139.65 Tokyo
+          stations 35.012 135.768 Kyoto
+          stations 35.361 138.727 "Mt Fuji"
+          stations 45.464 9.19 Milan
+          stations 50.076 14.438 Prague
