@@ -1,6 +1,6 @@
 // Same maths as the spreadsheet. All day arithmetic is done in UTC so that
 // BST changeovers never produce 23/25-hour "days".
-import type { Country, ClearanceStatus, Settings, Trip } from '../types';
+import type { Country, ClearanceStatus, Settings, Stop, StopKind, Trip } from '../types';
 
 const DAY = 86_400_000;
 
@@ -32,6 +32,16 @@ export function nights(t: Pick<Trip, 'start' | 'end'>): number | null {
 export function calendarDays(t: Pick<Trip, 'start' | 'end'>): number | null {
   const n = nights(t);
   return n === null ? null : n + 1;
+}
+
+export function stopKind(s: Pick<Stop, 'kind'>): StopKind {
+  return s.kind ?? 'base';
+}
+
+/** Base number (1, 2, 3…) for each stop, or null for overnight stops. */
+export function baseNumbers(stops: Pick<Stop, 'kind'>[]): (number | null)[] {
+  let n = 0;
+  return stops.map((s) => (stopKind(s) === 'base' ? ++n : null));
 }
 
 /** True when this date is a working shift on the 4-on-4-off rota. */

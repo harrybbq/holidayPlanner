@@ -287,84 +287,161 @@
           "country": "United States",
           "lat": 47.606,
           "lng": -122.332,
-          "nights": 6
+          "nights": 6,
+          "kind": "base",
+          "leg": {
+            "by": "road",
+            "via": [
+              {
+                "name": "Edmonds ferry",
+                "lat": 47.8132,
+                "lng": -122.385
+              },
+              {
+                "name": "Kingston",
+                "lat": 47.7966,
+                "lng": -122.496
+              },
+              {
+                "name": "Port Townsend",
+                "lat": 48.117,
+                "lng": -122.76
+              }
+            ]
+          }
         },
         {
           "name": "Forks",
           "country": "United States",
           "lat": 47.95,
           "lng": -124.385,
-          "nights": 7
+          "nights": 7,
+          "kind": "base"
         },
         {
           "name": "Astoria",
           "country": "United States",
           "lat": 46.188,
           "lng": -123.831,
-          "nights": 7
+          "nights": 7,
+          "kind": "base"
         },
         {
           "name": "Mosier (Hood River)",
           "country": "United States",
           "lat": 45.684,
           "lng": -121.396,
-          "nights": 7
+          "nights": 7,
+          "kind": "base"
         },
         {
           "name": "Portland",
           "country": "United States",
           "lat": 45.515,
           "lng": -122.679,
-          "nights": 3
+          "nights": 3,
+          "kind": "base"
         },
         {
           "name": "St. Helens (Columbia City base)",
           "country": "United States",
           "lat": 45.89,
           "lng": -122.807,
-          "nights": 7
+          "nights": 7,
+          "kind": "base",
+          "leg": {
+            "by": "road",
+            "via": [
+              {
+                "name": "Cannon Beach",
+                "lat": 45.892,
+                "lng": -123.961
+              },
+              {
+                "name": "Tillamook",
+                "lat": 45.456,
+                "lng": -123.844
+              },
+              {
+                "name": "Pacific City",
+                "lat": 45.202,
+                "lng": -123.962
+              }
+            ]
+          }
         },
         {
           "name": "Newport",
           "country": "United States",
           "lat": 44.637,
           "lng": -124.053,
-          "nights": 1
+          "nights": 1,
+          "kind": "overnight"
         },
         {
           "name": "Yachats",
           "country": "United States",
           "lat": 44.311,
           "lng": -124.105,
-          "nights": 1
+          "nights": 1,
+          "kind": "overnight"
         },
         {
           "name": "Bandon",
           "country": "United States",
           "lat": 43.119,
           "lng": -124.408,
-          "nights": 1
+          "nights": 1,
+          "kind": "overnight"
         },
         {
           "name": "Trinidad",
           "country": "United States",
           "lat": 41.059,
           "lng": -124.143,
-          "nights": 3
+          "nights": 3,
+          "kind": "base",
+          "leg": {
+            "by": "road",
+            "via": [
+              {
+                "name": "Westport (Highway 1)",
+                "lat": 39.636,
+                "lng": -123.782
+              }
+            ]
+          }
         },
         {
           "name": "Mendocino",
           "country": "United States",
           "lat": 39.308,
           "lng": -123.799,
-          "nights": 2
+          "nights": 2,
+          "kind": "overnight",
+          "leg": {
+            "by": "road",
+            "via": [
+              {
+                "name": "Point Arena",
+                "lat": 38.909,
+                "lng": -123.693
+              },
+              {
+                "name": "Jenner",
+                "lat": 38.449,
+                "lng": -123.116
+              }
+            ]
+          }
         },
         {
           "name": "San Francisco",
           "country": "United States",
           "lat": 37.775,
           "lng": -122.419,
-          "nights": 4
+          "nights": 4,
+          "kind": "base"
         }
       ],
       "start": "2028-09-25",

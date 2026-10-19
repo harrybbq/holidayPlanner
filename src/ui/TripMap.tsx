@@ -1,10 +1,10 @@
 import { Fragment, useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Polyline, Marker, CircleMarker, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import type { Stop, Trip } from '../types';
+import type { Stop, StopKind, Trip } from '../types';
 import { arc, halfway, type LatLng } from '../lib/geo';
 import { decode, freshRoute, legOf } from '../lib/route';
-import { fmtDate } from '../lib/calc';
+import { baseNumbers, fmtDate, stopKind } from '../lib/calc';
 
 interface Props {
   trips: Trip[];
@@ -13,7 +13,17 @@ interface Props {
   onSelect: (id: string | null) => void;
 }
 
-function stopIcon(label: string, colour: string, active: boolean) {
+function stopIcon(label: string, colour: string, active: boolean, kind: StopKind = 'base') {
+  if (kind === 'overnight') {
+    // Overnight stops are small solid dots; via points (selected trip only) are rings.
+    const d = active ? 13 : 11;
+    return L.divIcon({
+      className: '',
+      iconSize: [d, d],
+      iconAnchor: [d / 2, d / 2],
+      html: `<div class="pin" style="--c:${colour};width:${d}px;height:${d}px"></div>`,
+    });
+  }
   const h = active ? 26 : 20;
   const w = Math.max(h, label.length * 7 + 10);
   return L.divIcon({
@@ -24,17 +34,25 @@ function stopIcon(label: string, colour: string, active: boolean) {
   });
 }
 
-/** One pin per place: a route that revisits a stop (Dubrovnik on Croatia+) gets "2·4". */
+/**
+ * One pin per place: a route that revisits a base (Dubrovnik on Croatia+) gets "2·4".
+ * Only bases are numbered; overnight stops are drawn as dots, under the bases.
+ */
 function pins(t: Trip) {
-  const out: { stop: Trip['stops'][number]; nums: number[]; nights: number }[] = [];
+  const numbers = baseNumbers(t.stops);
+  const out: { stop: Trip['stops'][number]; nums: number[]; nights: number; kind: StopKind }[] = [];
   t.stops.forEach((s, i) => {
     const same = out.find((p) => Math.abs(p.stop.lat - s.lat) < 1e-3 && Math.abs(p.stop.lng - s.lng) < 1e-3);
+    const n = numbers[i];
     if (same) {
-      same.nums.push(i + 1);
+      if (n !== null) {
+        same.nums.push(n);
+        same.kind = 'base';
+      }
       same.nights += s.nights ?? 0;
-    } else out.push({ stop: s, nums: [i + 1], nights: s.nights ?? 0 });
+    } else out.push({ stop: s, nums: n !== null ? [n] : [], nights: s.nights ?? 0, kind: stopKind(s) });
   });
-  return out;
+  return out.sort((a, b) => Number(a.kind === 'base') - Number(b.kind === 'base'));
 }
 
 // Decoding a long route on every render adds up, so each stored line is decoded once.
@@ -116,7 +134,7 @@ export default function TripMap({ trips, colours, selectedId, onSelect }: Props)
         const active = t.id === selectedId;
         const dim = selectedId !== null && !active;
         const parked = t.inPlan === 'Parked';
-        const multi = t.stops.length > 1;
+        const multi = t.stops.filter((s) => stopKind(s) === 'base').length > 1;
         const legs = t.stops.slice(1).map((s, i) => legLine(t.stops[i], s));
         const click = { click: () => onSelect(t.id) };
         return (
@@ -157,18 +175,18 @@ export default function TripMap({ trips, colours, selectedId, onSelect }: Props)
                 <Tooltip direction="top" offset={[0, -4]}>via {v.name}</Tooltip>
               </CircleMarker>
             ))}
-            {pins(t).map(({ stop: s, nums, nights }, i) => (
+            {pins(t).map(({ stop: s, nums, nights, kind }, i) => (
               <Marker
                 key={i}
                 position={[s.lat, s.lng]}
-                icon={stopIcon(multi ? nums.join('·') : '', colour, active)}
+                icon={stopIcon(multi ? nums.join('·') : '', colour, active, kind)}
                 opacity={dim ? 0.35 : 1}
                 zIndexOffset={active ? 1000 : 0}
                 eventHandlers={click}
               >
                 <Tooltip direction="top" offset={[0, -10]}>
                   <strong>{s.name}</strong>
-                  {multi && ` · stop ${nums.join(' & ')}`}
+                  {kind === 'overnight' ? (nights > 1 ? ' · short stay' : ' · overnight stop') : multi && ` · stop ${nums.join(' & ')}`}
                   {nights ? ` · ${nights} night${nights === 1 ? '' : 's'}` : ''}
                   <br />
                   {t.name}

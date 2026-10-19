@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
-import type { Avoid, InPlan, Leg, LeaveStatus, Stop, Travel, Trip, TripStatus } from '../types';
-import { nights } from '../lib/calc';
+import type { Avoid, InPlan, Leg, LeaveStatus, Stop, StopKind, Travel, Trip, TripStatus } from '../types';
+import { baseNumbers, nights, stopKind } from '../lib/calc';
 import { km } from '../lib/geo';
 import { geocode, type Place } from '../lib/api';
 import { AVOID_LABEL, freshRoute, insertVia, legOf, legsByPair, relink } from '../lib/route';
@@ -78,6 +78,7 @@ export default function TripEditor({ trip, isNew, onSave, onDelete, onCancel }: 
 
   const n = nights(t);
   const stopNights = t.stops.reduce((s, x) => s + (x.nights ?? 0), 0);
+  const nums = baseNumbers(t.stops);
 
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onCancel()}>
@@ -150,7 +151,7 @@ export default function TripEditor({ trip, isNew, onSave, onDelete, onCancel }: 
             <ol className="stop-edit">
               {t.stops.map((s, i) => (
                 <li key={i}>
-                  <span className="rm-num">{i + 1}</span>
+                  <span className={`rm-num ${stopKind(s) === 'base' ? '' : 'rm-num-minor'}`}>{nums[i] ?? '·'}</span>
                   <input className="grow" value={s.name} onChange={(e) => setStop(i, { name: e.target.value })} aria-label="Stop name" />
                   <input className="country" value={s.country} onChange={(e) => setStop(i, { country: e.target.value })} aria-label="Country" />
                   <input
@@ -162,6 +163,19 @@ export default function TripEditor({ trip, isNew, onSave, onDelete, onCancel }: 
                     onChange={(e) => setStop(i, { nights: e.target.value === '' ? null : Number(e.target.value) })}
                     aria-label="Nights"
                   />
+                  <select
+                    className="kind"
+                    value={stopKind(s)}
+                    onChange={(e) => {
+                      const kind = e.target.value as StopKind;
+                      setStop(i, kind === 'overnight' && !s.nights ? { kind, nights: 1 } : { kind });
+                    }}
+                    aria-label="Stop type"
+                    title="Base: staying put for a while · Overnight: a night or two on the move. Places you only pass through go in a leg's Choose roads."
+                  >
+                    <option value="base">Base</option>
+                    <option value="overnight">Overnight</option>
+                  </select>
                   <button className="icon-btn" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move up">↑</button>
                   <button className="icon-btn" onClick={() => move(i, 1)} disabled={i === t.stops.length - 1} aria-label="Move down">↓</button>
                   <button className="icon-btn" onClick={() => setStops(t.stops.filter((_, j) => j !== i))} aria-label="Remove stop">×</button>
