@@ -1,13 +1,13 @@
 // Local-only API served by the Vite dev server (no separate process).
 // Data lives in ./data as JSON. The only outbound calls are OpenStreetMap
 // tiles (browser), Nominatim place lookups you trigger when adding a stop or
-// via point, and OSRM road routes for driving legs.
+// via point, OSRM road routes for driving legs and BRouter rail routes for trains.
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Plugin } from 'vite';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Avoid, Country, SeedFile, Settings, Trip } from '../src/types';
-import { AVOID_LABEL, findRoute } from '../src/lib/route';
+import { AVOID_LABEL, lookUp } from '../src/lib/route';
 import type { LatLng } from '../src/lib/geo';
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
@@ -68,7 +68,7 @@ function send(res: ServerResponse, status: number, data: unknown) {
   res.end(JSON.stringify(data));
 }
 
-// Nominatim and OSRM usage policies: max 1 request/second, identify the app.
+// Nominatim, OSRM and BRouter usage: max 1 request/second, identify the app.
 const USER_AGENT = { 'User-Agent': 'HolidayPlanner/0.1 (personal local app)' };
 let lastGeocode = 0;
 async function geocode(q: string, viewbox: string | null) {
@@ -138,9 +138,10 @@ export function apiPlugin(): Plugin {
               const points = (url.searchParams.get('points') ?? '').split(';').map((p) => p.split(',').map(Number));
               if (points.length < 2 || points.some((p) => p.length !== 2 || !p.every(Number.isFinite)))
                 return send(res, 400, { error: 'Expected points=lat,lng;lat,lng' });
+              const by = url.searchParams.get('by') === 'train' ? 'train' : 'road';
               const avoid = url.searchParams.get('avoid') || undefined;
               if (avoid && !Object.hasOwn(AVOID_LABEL, avoid)) return send(res, 400, { error: `Can't avoid ${avoid}` });
-              return send(res, 200, await findRoute(points as LatLng[], avoid as Avoid | undefined, USER_AGENT));
+              return send(res, 200, await lookUp({ by, points: points as LatLng[], avoid: avoid as Avoid | undefined }, USER_AGENT));
             }
             default:
               return send(res, 404, { error: 'Not found' });

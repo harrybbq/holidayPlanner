@@ -15,20 +15,21 @@ interface Props {
 
 const kms = (n: number) => Math.round(n).toLocaleString('en-GB');
 
-/** How you get from a to b: the flight, the road route, or why there isn't one yet. */
+/** How you get from a to b: the flight, the road or rail route, or why there isn't one yet. */
 function LegInfo({ a, b, routeErrors }: { a: Stop; b: Stop; routeErrors: Record<string, string> }) {
   const leg = legOf(a);
   if (leg.by === 'flight') return <div className="rm-leg">✈ Fly ~{kms(km(a, b))} km to {b.name}</div>;
+  const train = leg.by === 'train';
   const r = freshRoute(a, b, leg);
   const chosen = [
     leg.via?.length ? 'via ' + leg.via.map((v) => v.name).join(', ') : '',
-    leg.avoid ? 'no ' + AVOID_LABEL[leg.avoid] : '',
+    !train && leg.avoid ? 'no ' + AVOID_LABEL[leg.avoid] : '',
   ].filter(Boolean);
   if (r?.line) {
     const detail = [r.roads, ...chosen].filter(Boolean).join(' · ');
     return (
       <div className="rm-leg">
-        Drive {kms(r.km)} km · {fmtMins(r.mins)} to {b.name}
+        {train ? `Train ${kms(r.km)} km` : `Drive ${kms(r.km)} km · ${fmtMins(r.mins)}`} to {b.name}
         {detail && <div className="rm-roads">{detail}</div>}
       </div>
     );
@@ -36,15 +37,19 @@ function LegInfo({ a, b, routeErrors }: { a: Stop; b: Stop; routeErrors: Record<
   if (r) {
     return (
       <div className="rm-leg">
-        <span className="warn-text">No road to {b.name}{chosen.length ? ` (${chosen.join(', ')})` : ''}.</span> Edit the trip to fly
-        this leg{chosen.length ? ' or change its roads' : ''}.
+        <span className="warn-text">
+          No {train ? 'railway' : 'road'} to {b.name}
+          {chosen.length ? ` (${chosen.join(', ')})` : ''}.
+        </span>{' '}
+        Edit the trip to {train ? 'drive or fly' : 'fly'} this leg{chosen.length ? ` or change its ${train ? 'route' : 'roads'}` : ''}.
       </div>
     );
   }
   const err = routeErrors[legKey(a, b, leg)];
   return (
     <div className="rm-leg">
-      Drive to {b.name} · {err ? <span className="warn-text">couldn't get the route: {err}</span> : 'finding the roads…'}
+      {train ? 'Train' : 'Drive'} to {b.name} ·{' '}
+      {err ? <span className="warn-text">couldn't get the route: {err}</span> : `finding the ${train ? 'railway' : 'roads'}…`}
     </div>
   );
 }
@@ -62,11 +67,12 @@ export default function TripDetail({ trip, colour, settings, countries, routeErr
   const clearance = tripClearance(trip, countries);
   const plannedNights = trip.stops.reduce((s, x) => s + (x.nights ?? 0), 0);
   const allNightsKnown = trip.stops.length > 0 && trip.stops.every((s) => s.nights);
-  // Driving counts road distance once each route is in; until then, and for flights, it's as the crow flies.
-  const totals = { road: 0, flight: 0 };
+  // Driving and trains count route distance once each route is in; until then, and for flights, it's as the crow flies.
+  const totals = { road: 0, train: 0, flight: 0 };
   trip.stops.slice(1).forEach((x, i) => (totals[legOf(trip.stops[i]).by] += legKm(trip.stops[i], x)));
   const distance = [
     totals.road > 0 && `~${kms(totals.road)} km by road`,
+    totals.train > 0 && `~${kms(totals.train)} km by train`,
     totals.flight > 0 && `~${kms(totals.flight)} km flying`,
   ].filter(Boolean);
 

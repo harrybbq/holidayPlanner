@@ -6,29 +6,29 @@ export type TripStatus = 'Idea' | 'Planning' | 'Booked' | 'Done' | 'Cancelled';
 export type LeaveStatus = 'Not requested' | 'Requested' | 'Approved' | 'Declined' | 'Cancelled';
 export type ClearanceStatus = 'Pre-cleared' | 'Request needed' | 'Likely refused' | 'Unknown';
 
-export type Travel = 'road' | 'flight';
+export type Travel = 'road' | 'train' | 'flight';
 export type Avoid = 'motorway' | 'toll' | 'ferry';
 
-/** A place the road route must pass through: a town, or a point on the road you want to use. */
+/** A place the route must pass through: a town, or a point on the road or railway you want to use. */
 export interface Via {
   name: string;
   lat: number;
   lng: number;
 }
 
-/** A leg's road route, worked out by OSRM from OpenStreetMap data. */
+/** A leg's route over land, from OpenStreetMap data: roads by OSRM, railways by BRouter. */
 export interface Route {
-  key: string; // the ends, via points and avoid it was worked out for; when they change it's redone
-  line: string | null; // encoded polyline (precision 5), or null when no road joins the two stops
+  key: string; // how the leg was set up (mode, ends, via points, avoid); when that changes it's redone
+  line: string | null; // encoded polyline (precision 5), or null when no road or railway joins the two stops
   km: number;
-  mins: number;
-  roads: string; // main roads used, e.g. "I 5, US 101"
+  mins: number; // driving time; 0 for trains, which have no timetable here
+  roads: string; // main roads used, e.g. "I 5, US 101"; empty for trains
 }
 
 /** How you get from a stop to the next one. No leg means drive the best route. */
 export interface Leg {
   by: Travel;
-  via?: Via[]; // driving only, in travel order
+  via?: Via[]; // driving and trains, in travel order
   avoid?: Avoid; // driving only
   route?: Route;
 }

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import type { Avoid, InPlan, Leg, LeaveStatus, Stop, Trip, TripStatus } from '../types';
+import type { Avoid, InPlan, Leg, LeaveStatus, Stop, Travel, Trip, TripStatus } from '../types';
 import { nights } from '../lib/calc';
 import { km } from '../lib/geo';
 import { geocode, type Place } from '../lib/api';
@@ -14,6 +14,11 @@ interface Props {
 
 
 const STATUSES: TripStatus[] = ['Idea', 'Planning', 'Booked', 'Done', 'Cancelled'];
+const MODES: Array<[Travel, string]> = [
+  ['road', 'Drive'],
+  ['train', 'Train'],
+  ['flight', '✈ Fly'],
+];
 const LEAVE: LeaveStatus[] = ['Not requested', 'Requested', 'Approved', 'Declined', 'Cancelled'];
 
 export default function TripEditor({ trip, isNew, onSave, onDelete, onCancel }: Props) {
@@ -239,7 +244,7 @@ export default function TripEditor({ trip, isNew, onSave, onDelete, onCancel }: 
   );
 }
 
-/** How to get from one stop to the next: fly, or drive the best route or through chosen roads. */
+/** How to get from one stop to the next: fly, or drive or take the train by the best route or a chosen one. */
 function LegEdit({ from, to, leg, onChange }: { from: Stop; to: Stop; leg: Leg; onChange: (leg: Leg) => void }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
@@ -248,6 +253,7 @@ function LegEdit({ from, to, leg, onChange }: { from: Stop; to: Stop; leg: Leg; 
   const [err, setErr] = useState('');
   const via = leg.via ?? [];
   const route = freshRoute(from, to, leg);
+  const train = leg.by === 'train';
 
   async function search(e: React.FormEvent) {
     e.preventDefault();
@@ -263,7 +269,8 @@ function LegEdit({ from, to, leg, onChange }: { from: Stop; to: Stop; leg: Leg; 
     try {
       const data = await geocode(q.trim(), near);
       setResults(data);
-      if (data.length === 0) setErr('Nothing found. Try a town on the road, or the road with its area.');
+      if (data.length === 0)
+        setErr(train ? 'Nothing found. Try a town or station on the line.' : 'Nothing found. Try a town on the road, or the road with its area.');
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -281,9 +288,11 @@ function LegEdit({ from, to, leg, onChange }: { from: Stop; to: Stop; leg: Leg; 
     leg.by === 'flight'
       ? `~${Math.round(km(from, to)).toLocaleString('en-GB')} km to ${to.name}`
       : [
-          via.length ? 'via ' + via.map((v) => v.name).join(', ') : 'best route',
-          leg.avoid && 'no ' + AVOID_LABEL[leg.avoid],
-          route?.line ? `${route.km.toLocaleString('en-GB')} km${route.roads ? ' on ' + route.roads : ''}` : route && 'no road found',
+          via.length ? 'via ' + via.map((v) => v.name).join(', ') : train ? 'shortest rail route' : 'best route',
+          !train && leg.avoid && 'no ' + AVOID_LABEL[leg.avoid],
+          route?.line
+            ? `${route.km.toLocaleString('en-GB')} km${route.roads ? ' on ' + route.roads : ''}`
+            : route && (train ? 'no railway found' : 'no road found'),
         ]
           .filter(Boolean)
           .join(' · ');
@@ -292,31 +301,26 @@ function LegEdit({ from, to, leg, onChange }: { from: Stop; to: Stop; leg: Leg; 
     <div className="leg-edit">
       <div className="leg-line">
         <div className="seg" role="group" aria-label={`${from.name} to ${to.name}`}>
-          <button
-            type="button"
-            className={leg.by === 'road' ? 'on' : ''}
-            aria-pressed={leg.by === 'road'}
-            onClick={() => onChange({ ...leg, by: 'road' })}
-          >
-            Drive
-          </button>
-          <button
-            type="button"
-            className={leg.by === 'flight' ? 'on' : ''}
-            aria-pressed={leg.by === 'flight'}
-            onClick={() => onChange({ ...leg, by: 'flight' })}
-          >
-            ✈ Fly
-          </button>
+          {MODES.map(([by, label]) => (
+            <button
+              key={by}
+              type="button"
+              className={leg.by === by ? 'on' : ''}
+              aria-pressed={leg.by === by}
+              onClick={() => onChange({ ...leg, by })}
+            >
+              {label}
+            </button>
+          ))}
         </div>
         <span className="leg-sum muted small">{summary}</span>
-        {leg.by === 'road' && (
+        {leg.by !== 'flight' && (
           <button type="button" className="link small" onClick={() => setOpen(!open)}>
-            {open ? 'Done' : 'Choose roads'}
+            {open ? 'Done' : train ? 'Choose route' : 'Choose roads'}
           </button>
         )}
       </div>
-      {leg.by === 'road' && open && (
+      {leg.by !== 'flight' && open && (
         <div className="leg-roads">
           {via.length > 0 && (
             <ul className="via-list">
@@ -336,7 +340,11 @@ function LegEdit({ from, to, leg, onChange }: { from: Stop; to: Stop; leg: Leg; 
             </ul>
           )}
           <form className="search" onSubmit={search}>
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Go via a road or place, e.g. US-101 or Port Townsend" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={train ? 'Go via a town or station on the line you want' : 'Go via a road or place, e.g. US-101 or Port Townsend'}
+            />
             <button className="btn" disabled={searching}>{searching ? 'Searching…' : 'Find'}</button>
           </form>
           {err && <p className="warn-text small">{err}</p>}
@@ -351,18 +359,22 @@ function LegEdit({ from, to, leg, onChange }: { from: Stop; to: Stop; leg: Leg; 
               ))}
             </ul>
           )}
-          <div className="avoid">
-            <span>Avoid</span>
-            <select value={leg.avoid ?? ''} onChange={(e) => onChange({ ...leg, avoid: (e.target.value || undefined) as Avoid | undefined })}>
-              <option value="">nothing</option>
-              {(Object.keys(AVOID_LABEL) as Avoid[]).map((a) => (
-                <option key={a} value={a}>{AVOID_LABEL[a]}</option>
-              ))}
-            </select>
-          </div>
+          {!train && (
+            <div className="avoid">
+              <span>Avoid</span>
+              <select value={leg.avoid ?? ''} onChange={(e) => onChange({ ...leg, avoid: (e.target.value || undefined) as Avoid | undefined })}>
+                <option value="">nothing</option>
+                {(Object.keys(AVOID_LABEL) as Avoid[]).map((a) => (
+                  <option key={a} value={a}>{AVOID_LABEL[a]}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <p className="muted small">
-            With nothing chosen it takes the fastest route. Add the towns or roads you want it to go through; the route is
-            worked out again when you save.
+            {train
+              ? 'With nothing chosen it takes the shortest way along the tracks. Add towns it should go through to pick the line; '
+              : 'With nothing chosen it takes the fastest route. Add the towns or roads you want it to go through; '}
+            the route is worked out again when you save.
           </p>
         </div>
       )}

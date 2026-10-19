@@ -1,11 +1,13 @@
-// Road routes between stops, from the public OSRM server (OpenStreetMap data).
-// Each driving leg stores its route along with the inputs it came from, so it is
-// only fetched again when the stops, via points or avoid setting change.
+// Routes between stops over land, from OpenStreetMap data: roads from the public
+// OSRM server, railways from the public BRouter server's rail profile.
+// Each driving or train leg stores its route along with the inputs it came from,
+// so it is only fetched again when the mode, stops, via points or avoid change.
 // Shared by the browser, the local API and scripts/fill_routes.ts.
 import type { Avoid, Leg, Route, Stop, Trip, Via } from '../types';
 import { km, type LatLng } from './geo';
 
 const OSRM = 'https://router.project-osrm.org/route/v1/driving/';
+const BROUTER = 'https://brouter.de/brouter';
 
 export const AVOID_LABEL: Record<Avoid, string> = { motorway: 'motorways', toll: 'toll roads', ferry: 'ferries' };
 
@@ -21,8 +23,9 @@ export function legPoints(a: Stop, b: Stop, leg: Leg): LatLng[] {
 }
 
 export function legKey(a: Stop, b: Stop, leg: Leg): string {
-  const pts = legPoints(a, b, leg).map((p) => p.map((n) => n.toFixed(4)).join(','));
-  return pts.join(';') + (leg.avoid ? '!' + leg.avoid : '');
+  const pts = legPoints(a, b, leg).map((p) => p.map((n) => n.toFixed(4)).join(',')).join(';');
+  if (leg.by === 'train') return 'rail;' + pts;
+  return pts + (leg.avoid ? '!' + leg.avoid : '');
 }
 
 /** The stored road route, if it still matches the leg. */
@@ -30,10 +33,10 @@ export function freshRoute(a: Stop, b: Stop, leg: Leg): Route | null {
   return leg.route && leg.route.key === legKey(a, b, leg) ? leg.route : null;
 }
 
-/** Distance of a leg: by road once its route is known, otherwise as the crow flies. */
+/** Distance of a leg: by road or rail once its route is known, otherwise as the crow flies. */
 export function legKm(a: Stop, b: Stop): number {
   const leg = legOf(a);
-  const r = leg.by === 'road' ? freshRoute(a, b, leg) : null;
+  const r = leg.by === 'flight' ? null : freshRoute(a, b, leg);
   return r?.line ? r.km : km(a, b);
 }
 
@@ -73,15 +76,20 @@ export function relink(stops: Stop[], legs: Map<string, Leg>): Stop[] {
   });
 }
 
-export interface Job {
+/** What to look up: a road or rail route through the points, in order. */
+export interface Lookup {
+  by: 'road' | 'train';
+  points: LatLng[];
+  avoid?: Avoid; // roads only
+}
+
+export interface Job extends Lookup {
   tripId: string;
   index: number; // the leg leaves stops[index]
   key: string;
-  points: LatLng[];
-  avoid?: Avoid;
 }
 
-/** Driving legs whose road route is missing or out of date. */
+/** Driving and train legs whose route is missing or out of date. */
 export function pendingJobs(trips: Trip[], skip: (key: string) => boolean = () => false): Job[] {
   const out: Job[] = [];
   for (const t of trips) {
@@ -89,9 +97,10 @@ export function pendingJobs(trips: Trip[], skip: (key: string) => boolean = () =
       const a = t.stops[i];
       const b = t.stops[i + 1];
       const leg = legOf(a);
-      if (leg.by !== 'road' || freshRoute(a, b, leg)) continue;
+      if (leg.by === 'flight' || freshRoute(a, b, leg)) continue;
       const key = legKey(a, b, leg);
-      if (!skip(key)) out.push({ tripId: t.id, index: i, key, points: legPoints(a, b, leg), avoid: leg.avoid });
+      const avoid = leg.by === 'road' ? leg.avoid : undefined;
+      if (!skip(key)) out.push({ tripId: t.id, index: i, key, by: leg.by, points: legPoints(a, b, leg), avoid });
     }
   }
   return out;
@@ -114,7 +123,22 @@ export function fmtMins(m: number): string {
   return m % 60 ? `${h} h ${m % 60} min` : `${h} h`;
 }
 
-// ---------- OSRM ----------
+// Both public servers ask for light use: at most one request a second between them.
+let lastRequest = 0;
+async function throttle() {
+  const wait = lastRequest + 1100 - Date.now();
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  lastRequest = Date.now();
+}
+
+/** Looks up the route for a driving or train leg. */
+export function lookUp(q: Lookup, headers?: Record<string, string>): Promise<Found> {
+  return q.by === 'train' ? findRail(q.points, headers) : findRoute(q.points, q.avoid, headers);
+}
+
+const NONE: Found = { line: null, km: 0, mins: 0, roads: '' };
+
+// ---------- OSRM (roads) ----------
 
 interface OsrmResponse {
   code: string;
@@ -122,14 +146,9 @@ interface OsrmResponse {
   routes?: Array<{ geometry: string; distance: number; duration: number; legs: Array<{ summary?: string }> }>;
 }
 
-// OSRM demo server usage policy: at most one request a second.
-let lastRequest = 0;
-
 /** Asks OSRM for the best driving route through the points, in order. */
 export async function findRoute(points: LatLng[], avoid?: Avoid, headers?: Record<string, string>): Promise<Found> {
-  const wait = lastRequest + 1100 - Date.now();
-  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
-  lastRequest = Date.now();
+  await throttle();
   const url =
     OSRM +
     points.map(([lat, lng]) => `${lng},${lat}`).join(';') +
@@ -147,7 +166,7 @@ export async function findRoute(points: LatLng[], avoid?: Avoid, headers?: Recor
 
 export function parseOsrm(data: OsrmResponse): Found {
   // NoSegment: a point is nowhere near a road (an island with no ferry, open sea).
-  if (data.code === 'NoRoute' || data.code === 'NoSegment') return { line: null, km: 0, mins: 0, roads: '' };
+  if (data.code === 'NoRoute' || data.code === 'NoSegment') return NONE;
   const r = data.routes?.[0];
   if (data.code !== 'Ok' || !r) throw new Error(data.message || `Route finder said ${data.code}`);
   // Each leg's summary names its two main roads; via points split the route into several legs.
@@ -158,6 +177,40 @@ export function parseOsrm(data: OsrmResponse): Found {
     mins: Math.round(r.duration / 60),
     roads: roads.slice(0, 4).join(', '),
   };
+}
+
+// ---------- BRouter (railways) ----------
+
+/** Asks BRouter for the shortest way along railway tracks through the points, in order. */
+export async function findRail(points: LatLng[], headers?: Record<string, string>): Promise<Found> {
+  await throttle();
+  const url =
+    BROUTER +
+    '?lonlats=' +
+    points.map(([lat, lng]) => `${lng},${lat}`).join('|') +
+    '&profile=rail&alternativeidx=0&format=geojson';
+  const r = await fetch(url, { headers, signal: AbortSignal.timeout(60_000) });
+  return parseBrouter(r.status, await r.text(), points);
+}
+
+/** Reads BRouter's reply: GeoJSON on success, a plain-text message (HTTP 400) when it can't route. */
+export function parseBrouter(status: number, body: string, points: LatLng[]): Found {
+  if (status !== 200) {
+    // A stop with no railway near it, or tracks that don't join up.
+    if (/not mapped|no track found|island detected/i.test(body)) return NONE;
+    const msg = body.trim().split('\n')[0];
+    throw new Error(msg && !msg.startsWith('<') && msg.length < 200 ? msg : `Rail route finder unavailable (${status})`);
+  }
+  const track = (JSON.parse(body) as BrouterResponse).features?.[0];
+  if (!track) throw new Error('Rail route finder sent no route');
+  const rails = track.geometry.coordinates.map(([lng, lat]): LatLng => [lat, lng]);
+  // The tracks start at the station, so join the line up to the stops themselves.
+  const line = [points[0], ...rails, points[points.length - 1]];
+  return { line: encode(simplify(line, 0.0003)), km: Math.round(Number(track.properties['track-length']) / 1000), mins: 0, roads: '' };
+}
+
+interface BrouterResponse {
+  features?: Array<{ properties: Record<string, string>; geometry: { coordinates: number[][] } }>;
 }
 
 // ---------- polylines ----------

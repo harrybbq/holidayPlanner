@@ -3,7 +3,7 @@
 // Published (GitHub Pages, built with VITE_STATIC=1): there is no server, so the
 // committed seed is baked into the build and edits are kept in this browser.
 import type { Country, SeedFile, Settings, Trip } from '../types';
-import { findRoute, type Found, type Job } from './route';
+import { lookUp, type Found, type Job } from './route';
 
 export const STATIC = !!import.meta.env.VITE_STATIC;
 
@@ -24,7 +24,7 @@ export interface AppData {
 const TRIPS_KEY = 'holidayplanner.trips.v1';
 const SETTINGS_KEY = 'holidayplanner.settings.v1';
 const BUILD_KEY = 'holidayplanner.build.v1';
-// Road routes by leg key. Unlike the trips, these survive a new deploy, so the routes
+// Road and rail routes by leg key. Unlike the trips, these survive a new deploy, so the routes
 // already found don't have to be fetched again.
 const ROUTES_KEY = 'holidayplanner.routes.v1';
 
@@ -128,18 +128,18 @@ export async function geocode(q: string, near?: number[]): Promise<Place[]> {
   }));
 }
 
-/** The road route for a driving leg. */
+/** The road or rail route for a driving or train leg. */
 export async function route(job: Job): Promise<Found> {
   if (!STATIC) {
     const points = job.points.map((p) => p.join(',')).join(';');
-    const r = await fetch('/api/route?points=' + points + (job.avoid ? '&avoid=' + job.avoid : ''));
+    const r = await fetch('/api/route?by=' + job.by + '&points=' + points + (job.avoid ? '&avoid=' + job.avoid : ''));
     const data = await r.json();
     if (!r.ok) throw new Error(data.error);
     return data;
   }
   const cache = stored<Record<string, Found>>(ROUTES_KEY) ?? {};
   if (cache[job.key]) return cache[job.key];
-  const found = await findRoute(job.points, job.avoid);
+  const found = await lookUp(job);
   try {
     store(ROUTES_KEY, { ...cache, [job.key]: found });
   } catch {

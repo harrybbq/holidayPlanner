@@ -46,21 +46,22 @@ function roadLine(line: string): LatLng[] {
 }
 
 /**
- * The line for the leg leaving stop a: flights arc between the stops, driving legs
- * follow their road route. A driving leg with no route yet (or no road at all) is a
- * straight dotted line through its via points.
+ * The line for the leg leaving stop a: flights arc between the stops, driving and
+ * train legs follow their road or rail route. One with no route yet (or no road or
+ * railway at all) is a straight dotted line through its via points.
  */
-function legLine(a: Stop, b: Stop): { pts: LatLng[]; rough: boolean } {
+function legLine(a: Stop, b: Stop): { pts: LatLng[]; rough: boolean; train: boolean } {
   const leg = legOf(a);
-  if (leg.by === 'flight') return { pts: arc([a.lat, a.lng], [b.lat, b.lng]), rough: false };
+  const train = leg.by === 'train';
+  if (leg.by === 'flight') return { pts: arc([a.lat, a.lng], [b.lat, b.lng]), rough: false, train };
   const line = freshRoute(a, b, leg)?.line;
-  if (line) return { pts: roadLine(line), rough: false };
-  return { pts: [[a.lat, a.lng], ...(leg.via ?? []).map((v): LatLng => [v.lat, v.lng]), [b.lat, b.lng]], rough: true };
+  if (line) return { pts: roadLine(line), rough: false, train };
+  return { pts: [[a.lat, a.lng], ...(leg.via ?? []).map((v): LatLng => [v.lat, v.lng]), [b.lat, b.lng]], rough: true, train };
 }
 
-/** Via points of the trip's driving legs. */
+/** Via points of the trip's driving and train legs. */
 function vias(t: Trip) {
-  return t.stops.slice(0, -1).flatMap((s) => (legOf(s).by === 'road' ? (s.leg?.via ?? []) : []));
+  return t.stops.slice(0, -1).flatMap((s) => (legOf(s).by === 'flight' ? [] : (s.leg?.via ?? [])));
 }
 
 function arrowIcon(deg: number, colour: string) {
@@ -120,7 +121,7 @@ export default function TripMap({ trips, colours, selectedId, onSelect }: Props)
         const click = { click: () => onSelect(t.id) };
         return (
           <Fragment key={t.id}>
-            {legs.map(({ pts, rough }, i) => {
+            {legs.map(({ pts, rough, train }, i) => {
               const mid = halfway(pts);
               return (
                 <Fragment key={i}>
@@ -134,6 +135,14 @@ export default function TripMap({ trips, colours, selectedId, onSelect }: Props)
                     }}
                     eventHandlers={click}
                   />
+                  {train && !rough && (
+                    // Railway look: a white stripe down the middle of the line.
+                    <Polyline
+                      positions={pts}
+                      interactive={false}
+                      pathOptions={{ color: '#fff', weight: active ? 1.6 : 1.1, opacity: dim ? 0.25 : 0.95, dashArray: '4 4' }}
+                    />
+                  )}
                   {!dim && <Marker position={mid.at} icon={arrowIcon(mid.deg, colour)} interactive={false} />}
                 </Fragment>
               );

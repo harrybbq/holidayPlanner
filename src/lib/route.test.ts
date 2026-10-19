@@ -1,4 +1,4 @@
-import { decode, encode, freshRoute, insertVia, legKey, legOf, legsByPair, parseOsrm, pendingJobs, relink, simplify, withRoute } from './route';
+import { decode, encode, freshRoute, insertVia, legKey, legKm, legOf, legsByPair, parseBrouter, parseOsrm, pendingJobs, relink, simplify, withRoute } from './route';
 import { halfway, type LatLng } from './geo';
 import type { Stop, Trip } from '../types';
 
@@ -77,6 +77,69 @@ describe('legs', () => {
     const portTownsend = { name: 'Port Townsend', lat: 48.117, lng: -122.7604 };
     const via = insertVia(seattle, forks, [portTownsend], kingston);
     expect(via.map((v) => v.name)).toEqual(['Kingston', 'Port Townsend']);
+  });
+});
+
+describe('train legs', () => {
+  const tokyo = stop('Tokyo', 35.6812, 139.7671);
+  const kyoto = stop('Kyoto', 34.9858, 135.7588);
+
+  it('have their own route, apart from the road one', () => {
+    expect(legKey(tokyo, kyoto, { by: 'train' })).not.toBe(legKey(tokyo, kyoto, { by: 'road' }));
+  });
+
+  it("aren't affected by the road-only avoid setting", () => {
+    expect(legKey(tokyo, kyoto, { by: 'train', avoid: 'toll' })).toBe(legKey(tokyo, kyoto, { by: 'train' }));
+  });
+
+  it('are looked up by rail, without avoid', () => {
+    const t = trip('japan', [{ ...tokyo, leg: { by: 'train', avoid: 'toll' } }, kyoto]);
+    const [job] = pendingJobs([t]);
+    expect(job.by).toBe('train');
+    expect(job.avoid).toBeUndefined();
+  });
+
+  it('count rail distance once the route is in', () => {
+    const [job] = pendingJobs([trip('japan', [{ ...tokyo, leg: { by: 'train' } }, kyoto])]);
+    const [t] = withRoute([trip('japan', [{ ...tokyo, leg: { by: 'train' } }, kyoto])], job, { line: 'x', km: 453, mins: 0, roads: '' });
+    expect(legKm(t.stops[0], t.stops[1])).toBe(453);
+  });
+});
+
+describe('BRouter responses', () => {
+  const ends: LatLng[] = [[35.6812, 139.7671], [34.9858, 135.7588]];
+
+  it('reads the track and joins it up to the stops', () => {
+    const body = JSON.stringify({
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: { 'track-length': '452870', 'total-time': '0' },
+          geometry: { type: 'LineString', coordinates: [[139.766, 35.681, 3], [137.0, 35.2, 20], [135.759, 34.986, 30]] },
+        },
+      ],
+    });
+    const found = parseBrouter(200, body, ends);
+    expect(found.km).toBe(453);
+    const line = decode(found.line!);
+    expect(line[0]).toEqual(ends[0]);
+    expect(line).toContainEqual([35.2, 137]);
+    expect(line[line.length - 1]).toEqual(ends[1]);
+  });
+
+  it('treats no railway as a result, not an error', () => {
+    expect(parseBrouter(400, 'to-position not mapped in existing datafile\n', ends).line).toBeNull();
+    expect(parseBrouter(400, 'target island detected for section 0\n', ends).line).toBeNull();
+    expect(parseBrouter(400, 'no track found at pass=0\n', ends).line).toBeNull();
+  });
+
+  it('passes on its other messages, but not error pages', () => {
+    expect(() => parseBrouter(400, 'operation killed by thread-priority-watchdog after 60 seconds\n', ends)).toThrow(
+      'operation killed by thread-priority-watchdog after 60 seconds',
+    );
+    expect(() => parseBrouter(502, '<html><body>Bad Gateway</body></html>', ends)).toThrow('Rail route finder unavailable (502)');
+    expect(() => parseBrouter(500, '', ends)).toThrow('Rail route finder unavailable (500)');
   });
 });
 
