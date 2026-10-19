@@ -549,14 +549,20 @@
           "country": "Japan",
           "lat": 35.676,
           "lng": 139.65,
-          "nights": null
+          "nights": null,
+          "leg": {
+            "by": "train"
+          }
         },
         {
           "name": "Kyoto",
           "country": "Japan",
           "lat": 35.012,
           "lng": 135.768,
-          "nights": null
+          "nights": null,
+          "leg": {
+            "by": "train"
+          }
         },
         {
           "name": "Mt Fuji",
