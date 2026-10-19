@@ -33,12 +33,20 @@ export interface Leg {
   route?: Route;
 }
 
+/**
+ * base: where you stay put for a while (the default, and what the map numbers).
+ * overnight: a night or two on the move, e.g. towns down a coast road.
+ * Places you only pass through are a driving leg's via points, not stops.
+ */
+export type StopKind = 'base' | 'overnight';
+
 export interface Stop {
   name: string; // e.g. "Rome"
   country: string; // must match a Countries entry name where possible, e.g. "Italy"
   lat: number;
   lng: number;
   nights?: number | null; // nights spent at this stop, when known
+  kind?: StopKind; // missing = 'base'
   leg?: Leg; // getting from here to the next stop; ignored on the last stop
 }
 

@@ -1,4 +1,4 @@
-import { calendarDays, isShiftDay, nights, shiftsUsed, summarise } from './calc';
+import { baseNumbers, calendarDays, isShiftDay, nights, shiftsUsed, summarise } from './calc';
 import type { Trip } from '../types';
 
 const ANCHOR = '2026-12-31';
@@ -78,5 +78,11 @@ describe('summary matches the Setup sheet', () => {
     expect(s.inPlanCost).toBe(6050);
     expect(s.parkedCost).toBe(22050);
     expect(s.monthlySaving).toBeCloseTo(6050 / 13);
+  });
+});
+
+describe('stop kinds', () => {
+  it('numbers only the bases; a stop with no kind counts as a base', () => {
+    expect(baseNumbers([{}, { kind: 'overnight' }, { kind: 'base' }, { kind: 'overnight' }, {}])).toEqual([1, null, 2, null, 3]);
   });
 });

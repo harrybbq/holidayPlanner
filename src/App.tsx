@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Country, Settings, Trip } from './types';
-import { daysUntil, fmtDate, fmtMoney, nights, shiftsUsed, slug, sortTrips, summarise, tripClearance } from './lib/calc';
+import { daysUntil, fmtDate, fmtMoney, nights, shiftsUsed, slug, sortTrips, stopKind, summarise, tripClearance } from './lib/calc';
 import { colourFor } from './lib/geo';
 import { pendingJobs, withRoute } from './lib/route';
 import * as api from './lib/api';
@@ -319,7 +319,16 @@ function TripList({
                 <span className="tc-cost">{fmtMoney(t.cost)}</span>
               </div>
               <div className="tc-route">
-                {t.stops.length ? t.stops.map((s) => s.name).join(' → ') : <em>{t.destination || 'Destination TBC'}</em>}
+                {t.stops.length ? (
+                  <>
+                    {t.stops.filter((s) => stopKind(s) === 'base').map((s) => s.name).join(' → ')}
+                    {t.stops.some((s) => stopKind(s) === 'overnight') && (
+                      <span className="muted"> · +{t.stops.filter((s) => stopKind(s) === 'overnight').length} overnight</span>
+                    )}
+                  </>
+                ) : (
+                  <em>{t.destination || 'Destination TBC'}</em>
+                )}
               </div>
               <div className="tc-meta">
                 {t.start ? (

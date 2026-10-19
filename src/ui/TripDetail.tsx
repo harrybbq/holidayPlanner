@@ -1,5 +1,5 @@
 import type { Country, Settings, Stop, Trip } from '../types';
-import { calendarDays, countryStatus, daysUntil, fmtDate, fmtMoney, fromDay, nights, shiftsUsed, toDay, tripClearance } from '../lib/calc';
+import { baseNumbers, calendarDays, countryStatus, daysUntil, fmtDate, fmtMoney, fromDay, nights, shiftsUsed, stopKind, toDay, tripClearance } from '../lib/calc';
 import { km } from '../lib/geo';
 import { AVOID_LABEL, fmtMins, freshRoute, legKey, legKm, legOf } from '../lib/route';
 
@@ -79,6 +79,11 @@ export default function TripDetail({ trip, colour, settings, countries, routeErr
     return here === null ? null : fromDay(here);
   });
 
+  const nums = baseNumbers(trip.stops);
+  const bases = nums.filter((x) => x !== null).length;
+  const overnights = trip.stops.length - bases;
+  const stopCount = overnights ? `${bases} bases · ${overnights} overnight` : `${trip.stops.length} stops`;
+
   const bookIn = trip.bookBy ? daysUntil(trip.bookBy) : null;
 
   return (
@@ -134,17 +139,18 @@ export default function TripDetail({ trip, colour, settings, countries, routeErr
       <section>
         <h3>
           Route
-          {trip.stops.length > 1 && <span className="muted"> · {[`${trip.stops.length} stops`, ...distance].join(' · ')}</span>}
+          {trip.stops.length > 1 && <span className="muted"> · {[stopCount, ...distance].join(' · ')}</span>}
         </h3>
         {trip.stops.length === 0 && <p className="muted">No destination yet. Add stops with Edit.</p>}
         <ol className="roadmap">
           {trip.stops.map((s, i) => {
             const next = trip.stops[i + 1];
             const st = countryStatus(s.country, countries);
+            const kind = stopKind(s);
             return (
-              <li key={i}>
+              <li key={i} className={`rm-${kind}`}>
                 <div className="rm-stop">
-                  <span className="rm-num">{i + 1}</span>
+                  <span className="rm-num">{nums[i] ?? ''}</span>
                   <div className="rm-body">
                     <div className="rm-name">
                       {s.name}
@@ -155,6 +161,7 @@ export default function TripDetail({ trip, colour, settings, countries, routeErr
                       {arrivals[i] && fmtDate(arrivals[i], { weekday: 'short', day: 'numeric', month: 'short' })}
                       {arrivals[i] && s.nights ? ' · ' : ''}
                       {s.nights ? `${s.nights} night${s.nights === 1 ? '' : 's'}` : ''}
+                      {kind === 'overnight' && ((arrivals[i] || s.nights ? ' · ' : '') + ((s.nights ?? 0) > 1 ? 'short stay' : 'overnight stop'))}
                     </div>
                   </div>
                 </div>
