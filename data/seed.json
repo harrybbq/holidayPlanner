@@ -293,6 +293,16 @@
             "by": "road",
             "via": [
               {
+                "name": "Edmonds ferry",
+                "lat": 47.8132,
+                "lng": -122.385
+              },
+              {
+                "name": "Kingston",
+                "lat": 47.7966,
+                "lng": -122.496
+              },
+              {
                 "name": "Port Townsend",
                 "lat": 48.117,
                 "lng": -122.76
