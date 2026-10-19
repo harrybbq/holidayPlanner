@@ -6,12 +6,40 @@ export type TripStatus = 'Idea' | 'Planning' | 'Booked' | 'Done' | 'Cancelled';
 export type LeaveStatus = 'Not requested' | 'Requested' | 'Approved' | 'Declined' | 'Cancelled';
 export type ClearanceStatus = 'Pre-cleared' | 'Request needed' | 'Likely refused' | 'Unknown';
 
+export type Travel = 'road' | 'flight';
+export type Avoid = 'motorway' | 'toll' | 'ferry';
+
+/** A place the road route must pass through: a town, or a point on the road you want to use. */
+export interface Via {
+  name: string;
+  lat: number;
+  lng: number;
+}
+
+/** A leg's road route, worked out by OSRM from OpenStreetMap data. */
+export interface Route {
+  key: string; // the ends, via points and avoid it was worked out for; when they change it's redone
+  line: string | null; // encoded polyline (precision 5), or null when no road joins the two stops
+  km: number;
+  mins: number;
+  roads: string; // main roads used, e.g. "I 5, US 101"
+}
+
+/** How you get from a stop to the next one. No leg means drive the best route. */
+export interface Leg {
+  by: Travel;
+  via?: Via[]; // driving only, in travel order
+  avoid?: Avoid; // driving only
+  route?: Route;
+}
+
 export interface Stop {
   name: string; // e.g. "Rome"
   country: string; // must match a Countries entry name where possible, e.g. "Italy"
   lat: number;
   lng: number;
   nights?: number | null; // nights spent at this stop, when known
+  leg?: Leg; // getting from here to the next stop; ignored on the last stop
 }
 
 export interface Leave {

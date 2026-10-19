@@ -1,7 +1,9 @@
-import { useState } from 'react';
-import type { InPlan, LeaveStatus, Stop, Trip, TripStatus } from '../types';
+import { useRef, useState } from 'react';
+import type { Avoid, InPlan, Leg, LeaveStatus, Stop, Trip, TripStatus } from '../types';
 import { nights } from '../lib/calc';
+import { km } from '../lib/geo';
 import { geocode, type Place } from '../lib/api';
+import { AVOID_LABEL, freshRoute, insertVia, legOf, legsByPair, relink } from '../lib/route';
 interface Props {
   trip: Trip;
   isNew: boolean;
@@ -23,9 +25,15 @@ export default function TripEditor({ trip, isNew, onSave, onDelete, onCancel }: 
   const [planTouched, setPlanTouched] = useState(!isNew);
 
   const set = <K extends keyof Trip>(k: K, v: Trip[K]) => setT((x) => ({ ...x, [k]: v }));
-  const setStops = (stops: Stop[]) => setT((x) => ({ ...x, stops }));
+  // Leg settings for every pair of neighbouring stops seen while editing, so a pair split up
+  // by moving a stop gets its settings back when it's put back together.
+  const pairs = useRef(new Map<string, Leg>());
+  const setStops = (stops: Stop[]) => {
+    legsByPair(t.stops, pairs.current);
+    setT((x) => ({ ...x, stops: relink(stops, pairs.current) }));
+  };
   const setStop = (i: number, patch: Partial<Stop>) =>
-    setStops(t.stops.map((s, j) => (j === i ? { ...s, ...patch } : s)));
+    setT((x) => ({ ...x, stops: x.stops.map((s, j) => (j === i ? { ...s, ...patch } : s)) }));
   const move = (i: number, d: -1 | 1) => {
     const j = i + d;
     if (j < 0 || j >= t.stops.length) return;
@@ -152,6 +160,15 @@ export default function TripEditor({ trip, isNew, onSave, onDelete, onCancel }: 
                   <button className="icon-btn" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move up">↑</button>
                   <button className="icon-btn" onClick={() => move(i, 1)} disabled={i === t.stops.length - 1} aria-label="Move down">↓</button>
                   <button className="icon-btn" onClick={() => setStops(t.stops.filter((_, j) => j !== i))} aria-label="Remove stop">×</button>
+                  {i + 1 < t.stops.length && (
+                    <LegEdit
+                      key={`${s.lat},${s.lng};${t.stops[i + 1].lat},${t.stops[i + 1].lng}`}
+                      from={s}
+                      to={t.stops[i + 1]}
+                      leg={legOf(s)}
+                      onChange={(leg) => setStop(i, { leg })}
+                    />
+                  )}
                 </li>
               ))}
             </ol>
@@ -218,6 +235,137 @@ export default function TripEditor({ trip, isNew, onSave, onDelete, onCancel }: 
           <button className="btn primary" onClick={save}>{isNew ? 'Add trip' : 'Save'}</button>
         </footer>
       </div>
+    </div>
+  );
+}
+
+/** How to get from one stop to the next: fly, or drive the best route or through chosen roads. */
+function LegEdit({ from, to, leg, onChange }: { from: Stop; to: Stop; leg: Leg; onChange: (leg: Leg) => void }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const [results, setResults] = useState<Place[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [err, setErr] = useState('');
+  const via = leg.via ?? [];
+  const route = freshRoute(from, to, leg);
+
+  async function search(e: React.FormEvent) {
+    e.preventDefault();
+    if (q.trim().length < 2) return;
+    // Rank roads and places around this leg first, so "A82" or "US-101" finds the right stretch.
+    const pts = [from, to, ...via];
+    const lats = pts.map((p) => p.lat);
+    const lngs = pts.map((p) => p.lng);
+    const pad = 0.5;
+    const near = [Math.min(...lngs) - pad, Math.min(...lats) - pad, Math.max(...lngs) + pad, Math.max(...lats) + pad];
+    setSearching(true);
+    setErr('');
+    try {
+      const data = await geocode(q.trim(), near);
+      setResults(data);
+      if (data.length === 0) setErr('Nothing found. Try a town on the road, or the road with its area.');
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  function addVia(p: Place) {
+    onChange({ ...leg, via: insertVia(from, to, via, { name: p.name, lat: p.lat, lng: p.lng }) });
+    setResults([]);
+    setQ('');
+  }
+
+  const summary =
+    leg.by === 'flight'
+      ? `~${Math.round(km(from, to)).toLocaleString('en-GB')} km to ${to.name}`
+      : [
+          via.length ? 'via ' + via.map((v) => v.name).join(', ') : 'best route',
+          leg.avoid && 'no ' + AVOID_LABEL[leg.avoid],
+          route?.line ? `${route.km.toLocaleString('en-GB')} km${route.roads ? ' on ' + route.roads : ''}` : route && 'no road found',
+        ]
+          .filter(Boolean)
+          .join(' · ');
+
+  return (
+    <div className="leg-edit">
+      <div className="leg-line">
+        <div className="seg" role="group" aria-label={`${from.name} to ${to.name}`}>
+          <button
+            type="button"
+            className={leg.by === 'road' ? 'on' : ''}
+            aria-pressed={leg.by === 'road'}
+            onClick={() => onChange({ ...leg, by: 'road' })}
+          >
+            Drive
+          </button>
+          <button
+            type="button"
+            className={leg.by === 'flight' ? 'on' : ''}
+            aria-pressed={leg.by === 'flight'}
+            onClick={() => onChange({ ...leg, by: 'flight' })}
+          >
+            ✈ Fly
+          </button>
+        </div>
+        <span className="leg-sum muted small">{summary}</span>
+        {leg.by === 'road' && (
+          <button type="button" className="link small" onClick={() => setOpen(!open)}>
+            {open ? 'Done' : 'Choose roads'}
+          </button>
+        )}
+      </div>
+      {leg.by === 'road' && open && (
+        <div className="leg-roads">
+          {via.length > 0 && (
+            <ul className="via-list">
+              {via.map((v, i) => (
+                <li key={i}>
+                  via {v.name}
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    onClick={() => onChange({ ...leg, via: via.filter((_, j) => j !== i) })}
+                    aria-label={`Remove via ${v.name}`}
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <form className="search" onSubmit={search}>
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Go via a road or place, e.g. US-101 or Port Townsend" />
+            <button className="btn" disabled={searching}>{searching ? 'Searching…' : 'Find'}</button>
+          </form>
+          {err && <p className="warn-text small">{err}</p>}
+          {results.length > 0 && (
+            <ul className="results">
+              {results.map((p, i) => (
+                <li key={i}>
+                  <button type="button" onClick={() => addVia(p)}>
+                    <strong>{p.name}</strong> <span className="muted small">{p.label}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="avoid">
+            <span>Avoid</span>
+            <select value={leg.avoid ?? ''} onChange={(e) => onChange({ ...leg, avoid: (e.target.value || undefined) as Avoid | undefined })}>
+              <option value="">nothing</option>
+              {(Object.keys(AVOID_LABEL) as Avoid[]).map((a) => (
+                <option key={a} value={a}>{AVOID_LABEL[a]}</option>
+              ))}
+            </select>
+          </div>
+          <p className="muted small">
+            With nothing chosen it takes the fastest route. Add the towns or roads you want it to go through; the route is
+            worked out again when you save.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

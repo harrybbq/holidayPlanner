@@ -3,6 +3,7 @@
 // Published (GitHub Pages, built with VITE_STATIC=1): there is no server, so the
 // committed seed is baked into the build and edits are kept in this browser.
 import type { Country, SeedFile, Settings, Trip } from '../types';
+import { findRoute, type Found, type Job } from './route';
 
 export const STATIC = !!import.meta.env.VITE_STATIC;
 
@@ -23,6 +24,9 @@ export interface AppData {
 const TRIPS_KEY = 'holidayplanner.trips.v1';
 const SETTINGS_KEY = 'holidayplanner.settings.v1';
 const BUILD_KEY = 'holidayplanner.build.v1';
+// Road routes by leg key. Unlike the trips, these survive a new deploy, so the routes
+// already found don't have to be fetched again.
+const ROUTES_KEY = 'holidayplanner.routes.v1';
 
 function stored<T>(key: string): T | null {
   try {
@@ -90,9 +94,11 @@ export async function reset(): Promise<void> {
 // Nominatim usage policy: max 1 request/second.
 let lastGeocode = 0;
 
-export async function geocode(q: string): Promise<Place[]> {
+/** Place search. `near` ([west, south, east, north]) ranks places in that box first. */
+export async function geocode(q: string, near?: number[]): Promise<Place[]> {
+  const box = near ? '&viewbox=' + near.map((n) => n.toFixed(4)).join(',') : '';
   if (!STATIC) {
-    const r = await fetch('/api/geocode?q=' + encodeURIComponent(q));
+    const r = await fetch('/api/geocode?q=' + encodeURIComponent(q) + box);
     const data = await r.json();
     if (!r.ok) throw new Error(data.error);
     return data;
@@ -102,7 +108,8 @@ export async function geocode(q: string): Promise<Place[]> {
   lastGeocode = Date.now();
   const r = await fetch(
     'https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=5&accept-language=en&q=' +
-      encodeURIComponent(q),
+      encodeURIComponent(q) +
+      box,
   );
   if (!r.ok) throw new Error(`Place search failed (${r.status})`);
   const rows = (await r.json()) as Array<{
@@ -119,4 +126,24 @@ export async function geocode(q: string): Promise<Place[]> {
     lat: Number(Number(x.lat).toFixed(4)),
     lng: Number(Number(x.lon).toFixed(4)),
   }));
+}
+
+/** The road route for a driving leg. */
+export async function route(job: Job): Promise<Found> {
+  if (!STATIC) {
+    const points = job.points.map((p) => p.join(',')).join(';');
+    const r = await fetch('/api/route?points=' + points + (job.avoid ? '&avoid=' + job.avoid : ''));
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error);
+    return data;
+  }
+  const cache = stored<Record<string, Found>>(ROUTES_KEY) ?? {};
+  if (cache[job.key]) return cache[job.key];
+  const found = await findRoute(job.points, job.avoid);
+  try {
+    store(ROUTES_KEY, { ...cache, [job.key]: found });
+  } catch {
+    /* storage full or blocked: the route is still used, just not kept */
+  }
+  return found;
 }

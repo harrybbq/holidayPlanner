@@ -1,8 +1,9 @@
 import { Fragment, useEffect, useMemo } from 'react';
-import { MapContainer, TileLayer, Polyline, Marker, Tooltip, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, Marker, CircleMarker, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import type { Trip } from '../types';
-import { arc, bearing, type LatLng } from '../lib/geo';
+import type { Stop, Trip } from '../types';
+import { arc, halfway, type LatLng } from '../lib/geo';
+import { decode, freshRoute, legOf } from '../lib/route';
 import { fmtDate } from '../lib/calc';
 
 interface Props {
@@ -36,6 +37,32 @@ function pins(t: Trip) {
   return out;
 }
 
+// Decoding a long route on every render adds up, so each stored line is decoded once.
+const decoded = new Map<string, LatLng[]>();
+function roadLine(line: string): LatLng[] {
+  let pts = decoded.get(line);
+  if (!pts) decoded.set(line, (pts = decode(line)));
+  return pts;
+}
+
+/**
+ * The line for the leg leaving stop a: flights arc between the stops, driving legs
+ * follow their road route. A driving leg with no route yet (or no road at all) is a
+ * straight dotted line through its via points.
+ */
+function legLine(a: Stop, b: Stop): { pts: LatLng[]; rough: boolean } {
+  const leg = legOf(a);
+  if (leg.by === 'flight') return { pts: arc([a.lat, a.lng], [b.lat, b.lng]), rough: false };
+  const line = freshRoute(a, b, leg)?.line;
+  if (line) return { pts: roadLine(line), rough: false };
+  return { pts: [[a.lat, a.lng], ...(leg.via ?? []).map((v): LatLng => [v.lat, v.lng]), [b.lat, b.lng]], rough: true };
+}
+
+/** Via points of the trip's driving legs. */
+function vias(t: Trip) {
+  return t.stops.slice(0, -1).flatMap((s) => (legOf(s).by === 'road' ? (s.leg?.via ?? []) : []));
+}
+
 function arrowIcon(deg: number, colour: string) {
   return L.divIcon({
     className: '',
@@ -50,7 +77,7 @@ function FitTo({ trips, selectedId }: { trips: Trip[]; selectedId: string | null
   // With nothing selected, frame the trips in the plan; parked ones are a pan away.
   const inPlan = trips.filter((t) => t.inPlan === 'Yes');
   const focus = selectedId ? trips.filter((t) => t.id === selectedId) : inPlan.length ? inPlan : trips;
-  const pts = focus.flatMap((t) => t.stops.map((s) => [s.lat, s.lng] as LatLng));
+  const pts = focus.flatMap((t) => [...t.stops, ...vias(t)].map((s): LatLng => [s.lat, s.lng]));
   // Only re-frame when the set of points actually changes, not on every edit.
   const sig = (selectedId ?? '') + pts.map((p) => p.join(',')).join(';');
   useEffect(() => {
@@ -89,12 +116,12 @@ export default function TripMap({ trips, colours, selectedId, onSelect }: Props)
         const dim = selectedId !== null && !active;
         const parked = t.inPlan === 'Parked';
         const multi = t.stops.length > 1;
-        const legs = t.stops.slice(1).map((s, i) => arc([t.stops[i].lat, t.stops[i].lng], [s.lat, s.lng]));
+        const legs = t.stops.slice(1).map((s, i) => legLine(t.stops[i], s));
         const click = { click: () => onSelect(t.id) };
         return (
           <Fragment key={t.id}>
-            {legs.map((pts, i) => {
-              const mid = Math.floor(pts.length / 2);
+            {legs.map(({ pts, rough }, i) => {
+              const mid = halfway(pts);
               return (
                 <Fragment key={i}>
                   <Polyline
@@ -102,21 +129,25 @@ export default function TripMap({ trips, colours, selectedId, onSelect }: Props)
                     pathOptions={{
                       color: colour,
                       weight: active ? 4 : 2.5,
-                      opacity: dim ? 0.25 : 0.9,
-                      dashArray: parked ? '6 7' : undefined,
+                      opacity: dim ? 0.25 : rough ? 0.6 : 0.9,
+                      dashArray: rough ? '1 7' : parked ? '6 7' : undefined,
                     }}
                     eventHandlers={click}
                   />
-                  {!dim && (
-                    <Marker
-                      position={pts[mid]}
-                      icon={arrowIcon(bearing(pts[mid - 1], pts[mid + 1]), colour)}
-                      interactive={false}
-                    />
-                  )}
+                  {!dim && <Marker position={mid.at} icon={arrowIcon(mid.deg, colour)} interactive={false} />}
                 </Fragment>
               );
             })}
+            {active && vias(t).map((v, i) => (
+              <CircleMarker
+                key={'via' + i}
+                center={[v.lat, v.lng]}
+                radius={4}
+                pathOptions={{ color: colour, weight: 2, fillColor: '#fff', fillOpacity: 1 }}
+              >
+                <Tooltip direction="top" offset={[0, -4]}>via {v.name}</Tooltip>
+              </CircleMarker>
+            ))}
             {pins(t).map(({ stop: s, nums, nights }, i) => (
               <Marker
                 key={i}

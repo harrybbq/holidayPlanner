@@ -172,6 +172,7 @@ code { font-size: 12px; background: var(--line-2); padding: 1px 4px; border-radi
 .rm-leg {
   margin-left: 11px; border-left: 2px dashed var(--c); padding: 6px 0 6px 20px; font-size: 12px; color: var(--muted);
 }
+.rm-roads { color: var(--ink-2); }
 .roadmap li:last-child .rm-body { padding-bottom: 0; }
 .leave-row { display: flex; align-items: center; gap: 8px; }
 .notes { white-space: pre-wrap; margin: 0; color: var(--ink-2); }
@@ -203,7 +204,7 @@ fieldset { border: 1px solid var(--line); border-radius: var(--radius); padding:
 legend { font-weight: 700; font-size: 13px; padding: 0 4px; }
 legend .muted { font-weight: 400; }
 .stop-edit { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.stop-edit li { display: flex; gap: 6px; align-items: center; }
+.stop-edit > li { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .stop-edit .rm-num { --c: var(--ink); }
 .stop-edit input { padding: 5px 8px !important; }
 .stop-edit .grow { flex: 1; min-width: 0; }
@@ -215,6 +216,24 @@ legend .muted { font-weight: 400; }
 .results li + li { border-top: 1px solid var(--line-2); }
 .results button { border: 0; background: none; width: 100%; text-align: left; padding: 7px 10px; }
 .results button:hover { background: var(--line-2); }
+.leg-edit {
+  flex-basis: 100%; min-width: 0; margin: 0 0 2px 11px; border-left: 2px dashed var(--line); padding: 4px 0 4px 18px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.leg-line { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.leg-sum { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seg { display: inline-flex; flex: none; background: var(--line-2); padding: 2px; border-radius: 7px; }
+.seg button { border: 0; background: none; padding: 2px 10px; border-radius: 5px; font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.seg button.on { background: var(--card); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.link { flex: none; border: 0; background: none; padding: 0; color: var(--accent); font-weight: 600; }
+.link:hover { text-decoration: underline; }
+.leg-roads { display: flex; flex-direction: column; gap: 8px; }
+.leg-roads p { margin: 0; }
+.via-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.via-list li { display: inline-flex; align-items: center; gap: 2px; background: var(--line-2); border-radius: 99px; padding: 1px 2px 1px 10px; font-size: 12.5px; }
+.via-list .icon-btn { width: 22px; height: 22px; font-size: 14px; }
+.avoid { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+.modal-body .avoid select { padding: 4px 8px; }
 
 /* ---------- calendar ---------- */
 .calendar { padding: 18px 22px; }

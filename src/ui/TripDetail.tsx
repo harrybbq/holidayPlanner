@@ -1,14 +1,52 @@
-import type { Country, Settings, Trip } from '../types';
+import type { Country, Settings, Stop, Trip } from '../types';
 import { calendarDays, countryStatus, daysUntil, fmtDate, fmtMoney, fromDay, nights, shiftsUsed, toDay, tripClearance } from '../lib/calc';
 import { km } from '../lib/geo';
+import { AVOID_LABEL, fmtMins, freshRoute, legKey, legKm, legOf } from '../lib/route';
 
 interface Props {
   trip: Trip;
   colour: string;
   settings: Settings;
   countries: Country[];
+  routeErrors: Record<string, string>;
   onEdit: () => void;
   onClose: () => void;
+}
+
+const kms = (n: number) => Math.round(n).toLocaleString('en-GB');
+
+/** How you get from a to b: the flight, the road route, or why there isn't one yet. */
+function LegInfo({ a, b, routeErrors }: { a: Stop; b: Stop; routeErrors: Record<string, string> }) {
+  const leg = legOf(a);
+  if (leg.by === 'flight') return <div className="rm-leg">✈ Fly ~{kms(km(a, b))} km to {b.name}</div>;
+  const r = freshRoute(a, b, leg);
+  const chosen = [
+    leg.via?.length ? 'via ' + leg.via.map((v) => v.name).join(', ') : '',
+    leg.avoid ? 'no ' + AVOID_LABEL[leg.avoid] : '',
+  ].filter(Boolean);
+  if (r?.line) {
+    const detail = [r.roads, ...chosen].filter(Boolean).join(' · ');
+    return (
+      <div className="rm-leg">
+        Drive {kms(r.km)} km · {fmtMins(r.mins)} to {b.name}
+        {detail && <div className="rm-roads">{detail}</div>}
+      </div>
+    );
+  }
+  if (r) {
+    return (
+      <div className="rm-leg">
+        <span className="warn-text">No road to {b.name}{chosen.length ? ` (${chosen.join(', ')})` : ''}.</span> Edit the trip to fly
+        this leg{chosen.length ? ' or change its roads' : ''}.
+      </div>
+    );
+  }
+  const err = routeErrors[legKey(a, b, leg)];
+  return (
+    <div className="rm-leg">
+      Drive to {b.name} · {err ? <span className="warn-text">couldn't get the route: {err}</span> : 'finding the roads…'}
+    </div>
+  );
 }
 
 const CLEARANCE_CLASS: Record<string, string> = {
@@ -18,13 +56,19 @@ const CLEARANCE_CLASS: Record<string, string> = {
   'Likely refused': 'bad',
 };
 
-export default function TripDetail({ trip, colour, settings, countries, onEdit, onClose }: Props) {
+export default function TripDetail({ trip, colour, settings, countries, routeErrors, onEdit, onClose }: Props) {
   const n = nights(trip);
   const shifts = shiftsUsed(trip, settings.rotaAnchor);
   const clearance = tripClearance(trip, countries);
   const plannedNights = trip.stops.reduce((s, x) => s + (x.nights ?? 0), 0);
   const allNightsKnown = trip.stops.length > 0 && trip.stops.every((s) => s.nights);
-  const totalKm = trip.stops.slice(1).reduce((s, x, i) => s + km(trip.stops[i], x), 0);
+  // Driving counts road distance once each route is in; until then, and for flights, it's as the crow flies.
+  const totals = { road: 0, flight: 0 };
+  trip.stops.slice(1).forEach((x, i) => (totals[legOf(trip.stops[i]).by] += legKm(trip.stops[i], x)));
+  const distance = [
+    totals.road > 0 && `~${kms(totals.road)} km by road`,
+    totals.flight > 0 && `~${kms(totals.flight)} km flying`,
+  ].filter(Boolean);
 
   // Arrival dates per stop, when the trip is dated and each stop's nights are known.
   let cursor = trip.start ? toDay(trip.start) : null;
@@ -90,7 +134,7 @@ export default function TripDetail({ trip, colour, settings, countries, onEdit, 
       <section>
         <h3>
           Route
-          {trip.stops.length > 1 && <span className="muted"> · {trip.stops.length} stops · ~{Math.round(totalKm).toLocaleString('en-GB')} km</span>}
+          {trip.stops.length > 1 && <span className="muted"> · {[`${trip.stops.length} stops`, ...distance].join(' · ')}</span>}
         </h3>
         {trip.stops.length === 0 && <p className="muted">No destination yet. Add stops with Edit.</p>}
         <ol className="roadmap">
@@ -114,7 +158,7 @@ export default function TripDetail({ trip, colour, settings, countries, onEdit, 
                     </div>
                   </div>
                 </div>
-                {next && <div className="rm-leg">{Math.round(km(s, next)).toLocaleString('en-GB')} km to {next.name}</div>}
+                {next && <LegInfo a={s} b={next} routeErrors={routeErrors} />}
               </li>
             );
           })}

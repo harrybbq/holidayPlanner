@@ -7,7 +7,8 @@
     "dev": "vite --open",
     "build": "tsc --noEmit && vite build",
     "test": "vitest run",
-    "import-xlsx": "python scripts/import_xlsx.py"
+    "import-xlsx": "python scripts/import_xlsx.py",
+    "routes": "vite-node scripts/fill_routes.ts"
   },
   "dependencies": {
     "leaflet": "^1.9.4",
@@ -23,6 +24,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "~5.6.2",
     "vite": "^6.0.7",
+    "vite-node": "^3.2.4",
     "vitest": "^3.2.7"
   }
 }

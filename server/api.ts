@@ -1,11 +1,14 @@
 // Local-only API served by the Vite dev server (no separate process).
 // Data lives in ./data as JSON. The only outbound calls are OpenStreetMap
-// tiles (browser) and Nominatim place lookups you trigger when adding a stop.
+// tiles (browser), Nominatim place lookups you trigger when adding a stop or
+// via point, and OSRM road routes for driving legs.
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Plugin } from 'vite';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import type { Country, SeedFile, Settings, Trip } from '../src/types';
+import type { Avoid, Country, SeedFile, Settings, Trip } from '../src/types';
+import { AVOID_LABEL, findRoute } from '../src/lib/route';
+import type { LatLng } from '../src/lib/geo';
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const SEED = path.join(DATA_DIR, 'seed.json');
@@ -65,16 +68,18 @@ function send(res: ServerResponse, status: number, data: unknown) {
   res.end(JSON.stringify(data));
 }
 
-// Nominatim usage policy: max 1 request/second, identify the app.
+// Nominatim and OSRM usage policies: max 1 request/second, identify the app.
+const USER_AGENT = { 'User-Agent': 'HolidayPlanner/0.1 (personal local app)' };
 let lastGeocode = 0;
-async function geocode(q: string) {
+async function geocode(q: string, viewbox: string | null) {
   const wait = lastGeocode + 1100 - Date.now();
   if (wait > 0) await new Promise((r) => setTimeout(r, wait));
   lastGeocode = Date.now();
   const url =
     'https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=5&accept-language=en&q=' +
-    encodeURIComponent(q);
-  const r = await fetch(url, { headers: { 'User-Agent': 'HolidayPlanner/0.1 (personal local app)' } });
+    encodeURIComponent(q) +
+    (viewbox ? '&viewbox=' + viewbox : '');
+  const r = await fetch(url, { headers: USER_AGENT });
   if (!r.ok) throw new Error(`Place search failed (${r.status})`);
   const rows = (await r.json()) as Array<{
     display_name: string;
@@ -125,7 +130,17 @@ export function apiPlugin(): Plugin {
             case 'GET /api/geocode': {
               const q = (url.searchParams.get('q') ?? '').trim();
               if (q.length < 2) return send(res, 400, { error: 'Type a place name' });
-              return send(res, 200, await geocode(q));
+              const box = url.searchParams.get('viewbox');
+              const boxOk = box && box.split(',').length === 4 && box.split(',').every((n) => Number.isFinite(Number(n)));
+              return send(res, 200, await geocode(q, boxOk ? box : null));
+            }
+            case 'GET /api/route': {
+              const points = (url.searchParams.get('points') ?? '').split(';').map((p) => p.split(',').map(Number));
+              if (points.length < 2 || points.some((p) => p.length !== 2 || !p.every(Number.isFinite)))
+                return send(res, 400, { error: 'Expected points=lat,lng;lat,lng' });
+              const avoid = url.searchParams.get('avoid') || undefined;
+              if (avoid && !Object.hasOwn(AVOID_LABEL, avoid)) return send(res, 400, { error: `Can't avoid ${avoid}` });
+              return send(res, 200, await findRoute(points as LatLng[], avoid as Avoid | undefined, USER_AGENT));
             }
             default:
               return send(res, 404, { error: 'Not found' });

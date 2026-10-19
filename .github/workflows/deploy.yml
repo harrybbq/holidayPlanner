@@ -25,6 +25,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      # Bake road routes for driving legs into the build. Best effort: any it can't get,
+      # the browser looks up instead.
+      - run: npm run routes
+        continue-on-error: true
       - run: npm run build
         env:
           VITE_STATIC: '1'

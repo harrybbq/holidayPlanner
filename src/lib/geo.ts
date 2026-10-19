@@ -34,6 +34,26 @@ export function bearing(a: LatLng, b: LatLng): number {
   return (Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI;
 }
 
+/** The point halfway along a line and the direction of travel there, for the leg's arrow. */
+export function halfway(pts: LatLng[]): { at: LatLng; deg: number } {
+  const dist = [0];
+  for (let i = 1; i < pts.length; i++) {
+    const [y1, x1] = pts[i - 1];
+    const [y2, x2] = pts[i];
+    dist.push(dist[i - 1] + Math.hypot(y2 - y1, (x2 - x1) * Math.cos((y1 * Math.PI) / 180)));
+  }
+  const total = dist[dist.length - 1];
+  const at = (f: number): LatLng => {
+    const want = total * f;
+    const i = Math.max(1, dist.findIndex((d) => d >= want));
+    const t = (want - dist[i - 1]) / (dist[i] - dist[i - 1] || 1);
+    const [y1, x1] = pts[i - 1];
+    const [y2, x2] = pts[i];
+    return [y1 + (y2 - y1) * t, x1 + (x2 - x1) * t];
+  };
+  return { at: at(0.5), deg: bearing(at(0.47), at(0.53)) };
+}
+
 export const TRIP_COLOURS = [
   '#d9480f', // burnt orange
   '#1971c2', // blue

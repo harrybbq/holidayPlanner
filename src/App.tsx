@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Country, Settings, Trip } from './types';
 import { daysUntil, fmtDate, fmtMoney, nights, shiftsUsed, slug, sortTrips, summarise, tripClearance } from './lib/calc';
 import { colourFor } from './lib/geo';
+import { pendingJobs, withRoute } from './lib/route';
 import * as api from './lib/api';
 import TripMap from './ui/TripMap';
 import TripDetail from './ui/TripDetail';
@@ -41,6 +42,12 @@ export default function App() {
   const [showParked, setShowParked] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [error, setError] = useState('');
+  // Driving legs whose route lookup failed this session, by leg key, so they aren't retried in a loop.
+  const [routeErrors, setRouteErrors] = useState<Record<string, string>>({});
+  const [routeTick, setRouteTick] = useState(0);
+  const routing = useRef(false);
+  const latest = useRef(trips);
+  latest.current = trips;
 
   useEffect(() => {
     api
@@ -61,6 +68,28 @@ export default function App() {
       setError('Save failed. Your last change is not saved.');
     }
   }
+
+  // Works out road routes for driving legs that don't have an up-to-date one, one at a time,
+  // and saves each as it arrives. Paused while the editor is open so a save there can't
+  // race with it.
+  const roadsLeft = useMemo(() => pendingJobs(trips, (k) => k in routeErrors), [trips, routeErrors]);
+  useEffect(() => {
+    const job = roadsLeft[0];
+    if (!job || editing || routing.current) return;
+    routing.current = true;
+    api
+      .route(job)
+      .then((found) => {
+        const next = withRoute(latest.current, job, found);
+        if (next !== latest.current) persist(next);
+      })
+      .catch((e) => setRouteErrors((x) => ({ ...x, [job.key]: (e as Error).message })))
+      .finally(() => {
+        routing.current = false;
+        setRouteTick((n) => n + 1);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roadsLeft, editing, routeTick]);
 
   async function saveSettings(s: Settings) {
     setSettings(s);
@@ -198,12 +227,16 @@ export default function App() {
                   colour={colours[selected.id]}
                   settings={settings}
                   countries={countries}
+                  routeErrors={routeErrors}
                   onEdit={() => setEditing({ trip: selected, isNew: false })}
                   onClose={() => setSelectedId(null)}
                 />
               )}
               {!selected && (
-                <div className="map-hint small">Solid lines are trips in the plan, dashed lines are parked. Click a trip for its route.</div>
+                <div className="map-hint small">
+                  Solid lines are trips in the plan, dashed lines are parked. Curves are flights. Click a trip for its route.
+                  {roadsLeft.length > 0 && !editing && ` Finding roads for ${roadsLeft.length} leg${roadsLeft.length === 1 ? '' : 's'}…`}
+                </div>
               )}
             </div>
           )}
