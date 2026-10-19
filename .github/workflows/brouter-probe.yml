@@ -1,0 +1,23 @@
+# Temporary: see what brouter.de's rail profile says for the Japan legs. Removed after.
+name: BRouter probe
+on:
+  push:
+    branches: [claude/affectionate-cray-9y8fuf]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          probe() {
+            echo "=== $1"
+            curl -s -m 90 -o body.txt -w "HTTP %{http_code} in %{time_total}s\n" "https://brouter.de/brouter?lonlats=$2&profile=rail&alternativeidx=0&format=geojson$3"
+            head -c 600 body.txt | sed -e 's/"coordinates".*//' ; echo
+          }
+          probe "Tokyo -> Kyoto (app's stops)" "139.65,35.676|135.768,35.012"
+          probe "Tokyo -> Kyoto, catch 3 km" "139.65,35.676|135.768,35.012" "&profile:waypointCatchingRange=3000"
+          probe "Tokyo -> Kyoto, dynamic range" "139.65,35.676|135.768,35.012" "&profile:use_dynamic_range=1"
+          probe "Tokyo Stn -> Kyoto Stn" "139.7671,35.6812|135.7588,34.9858"
+          probe "Kyoto -> Mt Fuji summit, catch 3 km" "135.768,35.012|138.727,35.361" "&profile:waypointCatchingRange=3000"
+          probe "Kyoto -> Mt Fuji summit, catch 25 km" "135.768,35.012|138.727,35.361" "&profile:waypointCatchingRange=25000"
+          probe "Rome -> Venice (app's stops)" "12.496,41.903|12.316,45.441"
+          probe "Rome -> Venice, catch 3 km" "12.496,41.903|12.316,45.441" "&profile:waypointCatchingRange=3000"
