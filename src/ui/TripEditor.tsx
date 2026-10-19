@@ -3,6 +3,7 @@ import type { Avoid, InPlan, Leg, LeaveStatus, Stop, StopKind, Travel, Trip, Tri
 import { baseNumbers, nights, stopKind } from '../lib/calc';
 import { km } from '../lib/geo';
 import { geocode, type Place } from '../lib/api';
+import { shrinkImage, validImage } from '../lib/image';
 import { AVOID_LABEL, freshRoute, insertVia, legOf, legsByPair, relink } from '../lib/route';
 interface Props {
   trip: Trip;
@@ -72,6 +73,7 @@ export default function TripEditor({ trip, isNew, onSave, onDelete, onCancel }: 
   function save() {
     if (!t.name.trim()) return setErr('Give the trip a name.');
     if (t.start && t.end && t.end < t.start) return setErr('End date is before the start date.');
+    if (t.image && !validImage(t.image)) return setErr('The feature image needs to be a web link (https://…) or an upload.');
     const destination = t.destination.trim() || t.stops.map((s) => s.name).join(' - ');
     onSave({ ...t, name: t.name.trim(), destination });
   }
@@ -240,6 +242,7 @@ export default function TripEditor({ trip, isNew, onSave, onDelete, onCancel }: 
             Notes
             <textarea rows={3} value={t.notes} onChange={(e) => set('notes', e.target.value)} />
           </label>
+          <ImageField image={t.image} onChange={(image) => set('image', image)} />
           {err && <p className="warn-text">{err}</p>}
         </div>
 
@@ -392,6 +395,62 @@ function LegEdit({ from, to, leg, onChange }: { from: Stop; to: Stop; leg: Leg; 
           </p>
         </div>
       )}
+    </div>
+  );
+}
+
+/** The trip's feature image: paste a link or upload a photo, with a preview. */
+function ImageField({ image, onChange }: { image?: string; onChange: (image: string | undefined) => void }) {
+  const file = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [broken, setBroken] = useState(false);
+  const uploaded = image?.startsWith('data:');
+
+  async function upload(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = ''; // so picking the same file again still fires
+    if (!f) return;
+    setBusy(true);
+    setMsg('');
+    try {
+      setBroken(false);
+      onChange(await shrinkImage(f));
+    } catch (err) {
+      setMsg((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="image-field">
+      <span className="field-label">
+        Feature image <span className="muted">· shown at the top of the trip when you open it</span>
+      </span>
+      {image && !broken && <img className="image-preview" src={image} alt="" referrerPolicy="no-referrer" onError={() => setBroken(true)} />}
+      {image && broken && <p className="warn-text small">That link doesn't load as an image. Use a direct link to the picture itself.</p>}
+      <div className="image-row">
+        <input
+          value={uploaded ? '' : (image ?? '')}
+          onChange={(e) => {
+            setBroken(false);
+            onChange(e.target.value.trim() || undefined);
+          }}
+          placeholder={uploaded ? 'Uploaded from this computer' : 'Paste an image link: https://…'}
+          aria-label="Feature image link"
+        />
+        <button type="button" className="btn" onClick={() => file.current?.click()} disabled={busy}>
+          {busy ? 'Reading…' : 'Upload…'}
+        </button>
+        {image && (
+          <button type="button" className="btn ghost" onClick={() => onChange(undefined)} aria-label="Remove feature image">
+            Remove
+          </button>
+        )}
+        <input ref={file} type="file" accept="image/*" hidden onChange={upload} />
+      </div>
+      {msg && <p className="warn-text small">{msg}</p>}
     </div>
   );
 }

@@ -94,6 +94,17 @@ export default function TripDetail({ trip, colour, settings, countries, routeErr
 
   return (
     <aside className="detail" style={{ ['--c' as string]: colour }}>
+      {trip.image && (
+        // Keyed by the image so a new one gets another chance to load; a broken one just hides.
+        <img
+          key={trip.image}
+          className="detail-image"
+          src={trip.image}
+          alt=""
+          referrerPolicy="no-referrer"
+          onError={(e) => (e.currentTarget.style.display = 'none')}
+        />
+      )}
       <header className="detail-head">
         <div>
           <div className="eyebrow">

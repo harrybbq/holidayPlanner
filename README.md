@@ -24,6 +24,7 @@ It shows the trips in `data/seed.json`. Changes made there are kept in that brow
 - **Leave:** the Leave Tracker table with allowance, used and remaining shifts.
 - **Clearance:** the pre-cleared, request-needed and likely-refused lists, with the countries your trips visit in bold. Any country on no list is flagged. Only shown when `data/countries.json` exists (local only).
 - **+ Plan a trip:** stops come from an OpenStreetMap place search. Add as many as you like, reorder them, set nights per stop and mark each one a **Base** (staying put for a while) or **Overnight** (a night or two on the move, like towns down a coast road). Only bases are numbered. Stops with no type count as bases, so older trips look the same. Places you only drive through go in that leg's via points, not in the stops.
+- **Feature image:** each trip can have a photo shown across the top of its panel when you open it. In the editor, paste a link to an image or upload one from your computer; uploads are shrunk to a banner-sized JPEG (about 1000 px wide) and saved with the trip.
 - **Getting between stops:** each leg is **Drive**, **Train** or **✈ Fly**. Driving takes the fastest route unless you pick its roads: **Choose roads** lets you add towns or roads it must go through (search "US-101", "A82" or "Port Townsend"; results near the leg come first) and avoid motorways, toll roads or ferries. Trains take the shortest way along the tracks; **Choose route** adds towns or stations to go through, to pick the line. That's the track route, not a timetable, so train legs show distance but no journey time. Via points stay in travel order and show as small rings on the selected trip. A leg's settings stay with its pair of stops when you reorder.
 
 ## Data
@@ -32,7 +33,8 @@ It shows the trips in `data/seed.json`. Changes made there are kept in that brow
 - `data/trips.json` holds your live edits (gitignored). It's created from the seed on first run. **The import is one-way:** changes here aren't written back to the xlsx.
 - Road and rail routes are saved on each leg with the mode, stops, via points and avoid setting they were found for. Change any of those and the route is looked up again in the background (one request a second). Re-running the xlsx import drops leg settings, like any other edit made outside the sheet.
 - Settings → "Start again from the spreadsheet" throws away your edits and copies the seed back in.
-- Nothing is sent anywhere except OpenStreetMap map tiles, the place searches you type, and the stops and via points of driving and train legs, sent to find their routes: roads from the public [OSRM](https://project-osrm.org) server (router.project-osrm.org), railways from the public [BRouter](https://brouter.de) server (brouter.de).
+- In the published copy, uploaded images are kept in that browser's storage with the trips. It holds about 5 MB, so if a save fails because it's full, use image links instead of uploads.
+- Nothing is sent anywhere except OpenStreetMap map tiles, any feature image links you add (loaded from their own sites), the place searches you type, and the stops and via points of driving and train legs, sent to find their routes: roads from the public [OSRM](https://project-osrm.org) server (router.project-osrm.org), railways from the public [BRouter](https://brouter.de) server (brouter.de).
 
 ## The maths (same as the sheet)
 - Nights = end − start. Calendar days = nights + 1.

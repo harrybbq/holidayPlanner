@@ -64,8 +64,13 @@ export default function App() {
     setTrips(next);
     try {
       await api.saveTrips(next);
-    } catch {
-      setError('Save failed. Your last change is not saved.');
+    } catch (e) {
+      // The published copy keeps trips in browser storage, which uploaded images can fill.
+      setError(
+        (e as Error).name === 'QuotaExceededError'
+          ? "Save failed: this browser's storage is full. Use image links rather than uploads, or remove an image."
+          : 'Save failed. Your last change is not saved.',
+      );
     }
   }
 

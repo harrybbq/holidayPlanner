@@ -72,6 +72,7 @@ export interface Trip {
   notifiedOn: string | null;
   notes: string;
   leave: Leave;
+  image?: string; // feature photo at the top of the open trip: a web link, or an upload saved as a data URL
 }
 
 export interface Settings {
